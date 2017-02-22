@@ -1,0 +1,97 @@
+---
+title: "Convert to RDS"
+author: "Brian S Yandell"
+date: "May 4, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Convert from `save`/`load` to `saveRDS`/`readRDS`. Should improve access but will not change size.
+
+```{r}
+library(readr)
+library(qtl2geno)
+dirpath <- file.path("~/Documents/Research/attie_alan/DO", "data")
+datapath <- file.path(dirpath, "DerivedData/wave4")
+```
+
+Precomputed peaks
+
+```{r}
+load(file.path(datapath, "peaks.RData"))
+saveRDS(peaks, file.path(datapath, "peaks.rds"))
+```
+
+Precomputed analyses
+
+```{r}
+analysis_tbl <- read_csv(file.path(datapath, "analyses.csv"))
+saveRDS(analysis_tbl, file.path(datapath, "analyses.rds"))
+```
+
+Genotype probabilities (slow)
+
+```{r}
+## Genotype probabilities ("probs") [very large]
+load(file.path(datapath, 
+               "GM_Attie_allele_call_haploprobs_4qtl2_wave4.Rdata"))
+load(file.path(datapath, "markers.RData"))
+for(i in seq(along=probs$map)) {
+  tmp <- names(probs$map[[i]])
+  probs$map[[i]][tmp] <- markers[tmp, 3]
+}
+
+## physical map of the markers in the probs array
+load(file.path(datapath, "pmap.RData"))
+saveRDS(pmap, file.path(datapath, "pmap.rds"))
+saveRDS(probs, file.path(datapath, "probs.rds"))
+for(chr in names(probs$map)) {
+  cat(chr, "\n")
+  saveRDS(probs[,chr], 
+          file.path(datapath, paste0("probs_", chr, ".rds")))
+}
+```
+
+Kinship matrices ("loco" method) ("K")
+
+```{r}
+load(file.path(datapath, "kinship.RData"))
+saveRDS(K, file.path(datapath, "kinship.rds"))
+```
+
+Covariates
+
+```{r}
+load(file.path(datapath, "covar.RData"))
+saveRDS(covar, file.path(datapath, "covar.rds"))
+```
+
+Phenotypes
+
+```{r}
+for(pheno_type in c("clin","otu","otufam")) {
+  tmp <- paste("pheno", pheno_type, sep = "_")
+  tmp2 <- paste(tmp, "dict", sep = "_")
+  load(file.path(datapath, paste0(tmp, ".RData")))
+  saveRDS(get(tmp), file.path(datapath, paste0(tmp, ".rds")))
+  saveRDS(get(tmp2), file.path(datapath, paste0(tmp2, ".rds")))
+}
+```
+
+Put in new OTU measurements.
+
+```{r}
+analysis_tbl <- read_csv(file.path(datapath, "wave4", "DOQTL",
+                                   "analyses.csv"))
+saveRDS(analysis_tbl, file.path(datapath, "analyses.rds"))
+load(file.path(datapath, "wave4", "DOQTL", "peaks.Rdata"))
+load(file.path(datapath, "wave4", "DOQTL", "pheno_otu.Rdata"))
+saveRDS(peaks, file.path(datapath, "peaks.rds"))
+saveRDS(pheno_otu, file.path(datapath, "pheno_otu.rds"))
+saveRDS(pheno_otu_dict, file.path(datapath, "pheno_otu_dict.rds"))
+```

@@ -1,0 +1,86 @@
+---
+title: "Convert to RDS"
+author: "Brian S Yandell"
+date: "February 22, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Convert from `save`/`load` to `saveRDS`/`readRDS`. Should improve access but will not change size.
+
+```{r}
+library(readr)
+library(qtl2geno)
+dirpath <- file.path("~/Documents/Research/attie_alan/DO", "data")
+datapath <- file.path(dirpath, "DerivedData")
+wavepath <- file.path(datapath, "wave5")
+```
+
+Precomputed peaks
+
+```{r}
+load(file.path(wavepath, "peaks.RData"))
+saveRDS(peaks, file.path(datapath, "peaks.rds"))
+```
+
+Precomputed analyses
+
+```{r}
+analysis_tbl <- read.csv(file.path(wavepath, "analyses.csv"))
+saveRDS(analysis_tbl, file.path(datapath, "analyses.rds"))
+```
+
+Physical map
+
+```{r}
+load(file.path(wavepath, "probs_pmap.RData"))
+saveRDS(pmap, file.path(datapath, "pmap.rds"))
+```
+
+Genotype probabilities (slow)
+
+```{r}
+## Genotype probabilities ("probs") [very large]
+load(file.path(wavepath, 
+               "GM_Attie_allele_call_haploprobs_4qtl2_wave4.Rdata"))
+## wave3: "GM_Attie_allele_call_haploprobs_4qtl2.RData"
+## physical map of the markers in the probs array
+saveRDS(probs, file.path(datapath, "probs.rds"))
+for(chr in names(probs$map)) {
+  cat(chr, "\n")
+  saveRDS(probs[,chr], 
+          file.path(datapath, paste0("probs_", chr, ".rds")))
+}
+```
+
+Kinship matrices ("loco" method) ("K")
+
+```{r}
+load(file.path(wavepath, "kinship_qtl2.RData"))
+saveRDS(K, file.path(datapath, "kinship.rds"))
+```
+
+Covariates
+
+```{r}
+load(file.path(wavepath, "covar.RData"))
+saveRDS(covar, file.path(datapath, "covar.rds"))
+```
+
+Phenotypes
+
+```{r}
+for(pheno_type in c("clin","gutMB")) {
+  tmp <- paste("pheno", pheno_type, sep = "_")
+  tmp2 <- paste(tmp, "dict", sep = "_")
+  load(file.path(wavepath, paste0(tmp, ".RData")))
+  saveRDS(get(tmp), file.path(datapath, paste0(tmp, ".rds")))
+  saveRDS(get(tmp2), file.path(datapath, paste0(tmp2, ".rds")))
+}
+```
+
