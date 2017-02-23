@@ -31,7 +31,8 @@ saveRDS(peaks, file.path(datapath, "peaks.rds"))
 Precomputed analyses
 
 ```{r}
-analysis_tbl <- read.csv(file.path(wavepath, "analyses.csv"))
+analysis_tbl <- read.csv(file.path(wavepath, "analyses.csv"),
+                         stringsAsFactors = FALSE)
 saveRDS(analysis_tbl, file.path(datapath, "analyses.rds"))
 ```
 
@@ -45,16 +46,32 @@ saveRDS(pmap, file.path(datapath, "pmap.rds"))
 Genotype probabilities (slow)
 
 ```{r}
-## Genotype probabilities ("probs") [very large]
-load(file.path(wavepath, 
-               "GM_Attie_allele_call_haploprobs_4qtl2_wave4.Rdata"))
-## wave3: "GM_Attie_allele_call_haploprobs_4qtl2.RData"
-## physical map of the markers in the probs array
-saveRDS(probs, file.path(datapath, "probs.rds"))
-for(chr in names(probs$map)) {
-  cat(chr, "\n")
-  saveRDS(probs[,chr], 
-          file.path(datapath, paste0("probs_", chr, ".rds")))
+if(file.exists(file.path(wavepath, 
+               "GM_Attie_allele_call_haploprobs_4qtl2_wave4.Rdata"))) {
+  ## Genotype probabilities ("probs") [very large]
+  load(file.path(wavepath, 
+                 "GM_Attie_allele_call_haploprobs_4qtl2_wave4.Rdata"))
+  ## wave3: "GM_Attie_allele_call_haploprobs_4qtl2.RData"
+  ## physical map of the markers in the probs array
+  saveRDS(probs, file.path(datapath, "probs.rds"))
+  for(chr in names(probs$map)) {
+    cat(chr, "\n")
+    saveRDS(probs[,chr], 
+            file.path(datapath, paste0("probs_", chr, ".rds")))
+  }
+} else {
+  if(file.exists(file.path(wavepath, "probs_1.rds"))) {
+    for(chr in names(pmap)) {
+      cat(chr, "\n")
+      probs <- readRDS(file.path(wavepath, paste0("probs_", chr, ".rds")))
+      m <- match(names(probs$map[[chr]]), names(pmap[[chr]]))
+      if(any(is.na(m)))
+        stop("missing chr names")
+      probs$map[[chr]] <- pmap[[chr]][m]
+      saveRDS(probs[,chr], 
+              file.path(datapath, paste0("probs_", chr, ".rds")))
+    }
+  }
 }
 ```
 
