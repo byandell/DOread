@@ -2,6 +2,7 @@
 
 export(get_covar)
 export(get_pheno)
+export(nqrank)
 export(read_pheno_tbl)
 export(read_probs)
 export(read_probs36)
