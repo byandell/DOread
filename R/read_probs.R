@@ -1,3 +1,6 @@
+# Half-way redo of read_probs to align with new R/qtl2 data format
+# calc_genoprob attributes: is_x_chr, alleles, alleleprobs, and crosstype
+
 #' Read genotype probability object from file
 #'
 #' Uses readRDS to read object.
@@ -34,7 +37,7 @@ read_probs <- function(chr=NULL, datapath) {
       probs <- cbind(probs,
                      readRDS(file.path(datapath, paste0("probs_", chri, ".rds"))))
   }
-  probs
+  convert_probs(probs)
 }
 #' Read genotype probability object from file
 #'
@@ -59,18 +62,28 @@ read_probs36 <- function(chr_id, start_val, end_val, datapath) {
   attieDO <- readRDS(file.path(datapath,"attieDO.rds"))  # cross object
   probs1 <- readRDS(file.path(datapath,
                               paste0("attieDO_probs", chr_id, ".rds")))
-  probs1$map <- qtl2scan::interp_map(probs1$map, attieDO$gmap, attieDO$pmap)
-  ## Reduce to region of interest.
-  wh <- which(probs1$map[[chr_id]] >= start_val &
-                probs1$map[[chr_id]] <= end_val)
-  probs1$map[[chr_id]] <- probs1$map[[chr_id]][wh]
-  probs1$probs[[chr_id]] <- probs1$probs[[chr_id]][,,wh]
-  ## Fix rownames of probs. Begin with "DO-".
-  tmp <- substring(rownames(probs1$probs[[chr_id]]), 4)
-  rownames(probs1$probs[[chr_id]]) <- tmp
-  ## Sort them in increasing number order.
-  probs1$probs[[chr_id]] <-
-    probs1$probs[[chr_id]][order(as.numeric(tmp)),,]
 
-  probs1
+  map <- probs1$map
+  map <- qtl2scan::interp_map(map, attieDO$gmap, attieDO$pmap)
+
+  ## Needed for transition only. Does nothing if already in new format.
+  pr <- probs1 <- convert_probs(probs1)
+
+  ## Reduce to region of interest.
+  wh <- which(map[[chr_id]] >= start_val &
+              map[[chr_id]] <= end_val)
+  map[[chr_id]] <- map[[chr_id]][wh]
+  probs1[[chr_id]] <- probs1[[chr_id]][,,wh]
+
+  ## Fix rownames of probs. Begin with "DO-".
+  tmp <- substring(rownames(probs1[[chr_id]]), 4)
+  rownames(probs1[[chr_id]]) <- tmp
+  ## Sort them in increasing number order.
+  probs1[[chr_id]] <-
+    probs1[[chr_id]][order(as.numeric(tmp)),,]
+
+  # Bring along attributes for calc_genoprob object.
+  probs1 <- modify_probs(pr, probs1)
+
+  list(probs = probs1, map = map)
 }
