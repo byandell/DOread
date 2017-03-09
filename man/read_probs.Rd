@@ -21,9 +21,10 @@ read_probs36(chr_id, start_val, end_val, datapath)
 \item{datapath}{name of folder with Derived Data}
 }
 \value{
-large object of class \code{\link[qtl2geno]{calc_genoprob}}
+list with \code{probs} = large object of class \code{\link[qtl2geno]{calc_genoprob}} and \code{map} = physical map for selected \code{chr}
 
-large object of class \code{\link[qtl2geno]{calc_genoprob}}
+list with \code{probs} = large object of class \code{\link[qtl2geno]{calc_genoprob}}
+ and \code{map} = physical map for selected \code{chr} region
 }
 \description{
 Uses readRDS to read object.

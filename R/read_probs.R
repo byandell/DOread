@@ -8,7 +8,7 @@
 #' @param chr vector of chromosome identifiers
 #' @param datapath name of folder with Derived Data
 #'
-#' @return large object of class \code{\link[qtl2geno]{calc_genoprob}}
+#' @return list with \code{probs} = large object of class \code{\link[qtl2geno]{calc_genoprob}} and \code{map} = physical map for selected \code{chr}
 #'
 #' @author Brian S Yandell, \email{brian.yandell@@wisc.edu}
 #' @keywords utilities
@@ -20,11 +20,11 @@
 read_probs <- function(chr=NULL, datapath) {
   read_all_probs <- is.null(chr)
 
+  pmap <- readRDS(file.path(datapath, "pmap.rds"))
+
   if(!read_all_probs) {
     ## Read all probs if requesting at least half the chromosomes.
-    pmap <- readRDS(file.path(datapath, "pmap.rds"))
     read_all_probs <- (2 * length(chr) >= length(pmap))
-    rm(pmap)
   }
 
   if(read_all_probs) {
@@ -36,8 +36,10 @@ read_probs <- function(chr=NULL, datapath) {
     if(length(chr) > 1) for(chri in chr[-1])
       probs <- cbind(probs,
                      readRDS(file.path(datapath, paste0("probs_", chri, ".rds"))))
+    pmap <- pmap[chr]
   }
-  convert_probs(probs)
+  list(probs = convert_probs(probs),
+       map = pmap)
 }
 #' Read genotype probability object from file
 #'
@@ -47,7 +49,8 @@ read_probs <- function(chr=NULL, datapath) {
 #' @param start_val, end_val start and end values in Mbp
 #' @param datapath name of folder with Derived Data
 #'
-#' @return large object of class \code{\link[qtl2geno]{calc_genoprob}}
+#' @return list with \code{probs} = large object of class \code{\link[qtl2geno]{calc_genoprob}}
+#'  and \code{map} = physical map for selected \code{chr} region
 #'
 #' @author Brian S Yandell, \email{brian.yandell@@wisc.edu}
 #' @keywords utilities
@@ -85,5 +88,6 @@ read_probs36 <- function(chr_id, start_val, end_val, datapath) {
   # Bring along attributes for calc_genoprob object.
   probs1 <- modify_probs(pr, probs1)
 
-  list(probs = probs1, map = map)
+  list(probs = probs1,
+       map = map)
 }
