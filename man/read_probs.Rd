@@ -5,14 +5,18 @@
 \alias{read_probs36}
 \title{Read genotype probability object from file}
 \usage{
-read_probs(chr = NULL, datapath)
+read_probs(chr = NULL, datapath, map = readRDS(file.path(datapath,
+  "pmap.rds")))
 
-read_probs36(chr_id, start_val, end_val, datapath)
+read_probs36(chr_id, start_val = NULL, end_val = NULL, datapath,
+  map = NULL)
 }
 \arguments{
 \item{chr}{vector of chromosome identifiers}
 
 \item{datapath}{name of folder with Derived Data}
+
+\item{map}{genome map as list of chromosome maps}
 
 \item{start_val, }{end_val start and end values in Mbp}
 

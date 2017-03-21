@@ -7,6 +7,7 @@
 #'
 #' @param chr vector of chromosome identifiers
 #' @param datapath name of folder with Derived Data
+#' @param map genome map as list of chromosome maps
 #'
 #' @return list with \code{probs} = large object of class \code{\link[qtl2geno]{calc_genoprob}} and \code{map} = physical map for selected \code{chr}
 #'
@@ -17,14 +18,13 @@
 #' \dontrun{read_probs(chr, datapath)}
 #'
 #' @export
-read_probs <- function(chr=NULL, datapath) {
+read_probs <- function(chr=NULL, datapath,
+                       map = readRDS(file.path(datapath, "pmap.rds"))) {
   read_all_probs <- is.null(chr)
-
-  pmap <- readRDS(file.path(datapath, "pmap.rds"))
 
   if(!read_all_probs) {
     ## Read all probs if requesting at least half the chromosomes.
-    read_all_probs <- (2 * length(chr) >= length(pmap))
+    read_all_probs <- (2 * length(chr) >= length(map))
   }
 
   if(read_all_probs) {
@@ -36,10 +36,10 @@ read_probs <- function(chr=NULL, datapath) {
     if(length(chr) > 1) for(chri in chr[-1])
       probs <- cbind(probs,
                      readRDS(file.path(datapath, paste0("probs_", chri, ".rds"))))
-    pmap <- pmap[chr]
+    map <- map[chr]
   }
   list(probs = convert_probs(probs),
-       map = pmap)
+       map = map)
 }
 #' Read genotype probability object from file
 #'
@@ -61,22 +61,28 @@ read_probs <- function(chr=NULL, datapath) {
 #' @export
 #' @rdname read_probs
 #' @importFrom qtl2scan interp_map
-read_probs36 <- function(chr_id, start_val, end_val, datapath) {
+read_probs36 <- function(chr_id, start_val=NULL, end_val=NULL, datapath, map=NULL) {
   attieDO <- readRDS(file.path(datapath,"attieDO.rds"))  # cross object
   probs1 <- readRDS(file.path(datapath,
                               paste0("attieDO_probs", chr_id, ".rds")))
 
-  map <- probs1$map
-  map <- qtl2scan::interp_map(map, attieDO$gmap, attieDO$pmap)
+  if(is.null(map)) {
+    map <- probs1$map
+    if(is.null(map))
+      stop("need physical map")
+    map <- qtl2scan::interp_map(map, attieDO$gmap, attieDO$pmap)
+  }
 
   ## Needed for transition only. Does nothing if already in new format.
   pr <- probs1 <- convert_probs(probs1)
 
-  ## Reduce to region of interest.
-  wh <- which(map[[chr_id]] >= start_val &
-              map[[chr_id]] <= end_val)
-  map[[chr_id]] <- map[[chr_id]][wh]
-  probs1[[chr_id]] <- probs1[[chr_id]][,,wh]
+  if(!is.null(start_val) & !is.null(end_val)) {
+    ## Reduce to region of interest.
+    wh <- which(map[[chr_id]] >= start_val &
+                  map[[chr_id]] <= end_val)
+    map[[chr_id]] <- map[[chr_id]][wh]
+    probs1[[chr_id]] <- probs1[[chr_id]][,,wh]
+  }
 
   ## Fix rownames of probs. Begin with "DO-".
   tmp <- substring(rownames(probs1[[chr_id]]), 4)

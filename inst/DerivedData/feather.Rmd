@@ -1,0 +1,50 @@
+---
+title: "Convert to RDS"
+author: "Brian S Yandell"
+date: "February 22, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Convert from `save`/`load` to `saveRDS`/`readRDS`. Should improve access but will not change size.
+
+```{r}
+suppressPackageStartupMessages({
+  library(qtl2geno)
+  library(DOread)
+  library(qtl2feather)
+})
+dirpath <- file.path("~/Documents/Research/attie_alan/DO", "data")
+datapath <- file.path(dirpath, "DerivedData")
+```
+
+Set up feather directory.
+
+```{r}
+pmap <- readRDS(file.path(datapath, "pmap.rds"))
+feather_dir <- file.path(datapath, "feather")
+if(!dir.exists())
+  dir.create(feather_dir)
+```
+
+Genotype allele probabilities (slow)
+
+```{r}
+probs <- DOread::read_probs(, datapath)$probs
+fprobs <- qtl2feather::feather_genoprob(probs, "aprobs", feather_dir)
+saveRDS(fprobs, file = file.path(datapath, "faprobs.rds"))
+```
+
+Genotype 36 probabilities (very slow).
+
+```{r}
+chr <- "1"
+probs <- DOread::read_probs36(chr, datapath)$probs
+fprobs <- qtl2feather::feather_genoprob(probs, paste0("aprobs_", chr), feather_dir)
+saveRDS(fprobs, file = file.path(datapath, "faprobs.rds"))
+```
