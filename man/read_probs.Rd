@@ -13,6 +13,10 @@ read_probs(chr = NULL, start_val = NULL, end_val = NULL, datapath,
 \item{start_val, }{end_val start and end values in Mbp}
 
 \item{datapath}{name of folder with Derived Data}
+
+\item{allele}{read haplotype allele probabilities (if \code{TRUE}) or diplotype allele-pair probabilities (if \code{FALSE})}
+
+\item{method}{method of genoprob storage}
 }
 \value{
 list with \code{probs} = large object of class \code{\link[qtl2geno]{calc_genoprob}} and \code{map} = physical map for selected \code{chr}
