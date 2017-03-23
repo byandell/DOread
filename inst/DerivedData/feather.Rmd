@@ -35,9 +35,9 @@ if(!dir.exists(feather_dir))
 Genotype allele probabilities (slow)
 
 ```{r}
-probs <- DOread::read_probs_rds(NULL, datapath = datapath)$probs
-fprobs <- qtl2feather::feather_genoprob(probs, "aprobs", feather_dir)
-saveRDS(fprobs, file = file.path(datapath, "faprobs.rds"))
+probs <- DOread::read_probs(NULL, datapath = datapath, method = "calc")$probs
+fprobs <- qtl2feather::feather_genoprob(probs, "aprobs", feather_dir, verbose = FALSE)
+saveRDS(fprobs, file = file.path(datapath, feather_dir, "faprobs.rds"))
 ```
 
 Genotype 36 probabilities (very slow).
@@ -45,11 +45,11 @@ Genotype 36 probabilities (very slow).
 ```{r}
 for(chr in names(pmap)) {
   cat(chr, "\n")
-  probs <- DOread::read_probs36_rds(chr, datapath = datapath)$probs
+  probs <- DOread::read_probs(chr, datapath = datapath, allele = FALSE, method = "calc")$probs
   filebase <- "probs"
   if(chr != "X")
     filebase <- paste0("probs_", chr)
-  fprobs <- qtl2feather::feather_genoprob(probs, filebase, feather_dir)
-  saveRDS(fprobs, file = file.path(datapath, paste0("fprobs_", chr, ".rds")))
+  fprobs <- qtl2feather::feather_genoprob(probs, filebase, feather_dir, verbose = FALSE)
+  saveRDS(fprobs, file = file.path(datapath, feather_dir, paste0("fprobs_", chr, ".rds")))
 }
 ```

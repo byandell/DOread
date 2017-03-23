@@ -2,20 +2,12 @@
 % Please edit documentation in R/read_probs.R
 \name{read_probs}
 \alias{read_probs}
-\alias{read_probs36}
 \title{Read genotype probability object from file}
 \usage{
-read_probs(chr = NULL, start_val = NULL, end_val = NULL, datapath)
-
-read_probs36(chr, start_val = NULL, end_val = NULL, datapath)
+read_probs(chr = NULL, start_val = NULL, end_val = NULL, datapath,
+  allele = TRUE, method = c("feather", "calc"))
 }
 \arguments{
-\item{chr}{vector of chromosome identifiers}
-
-\item{start_val, }{end_val start and end values in Mbp}
-
-\item{datapath}{name of folder with Derived Data}
-
 \item{chr}{vector of chromosome identifiers}
 
 \item{start_val, }{end_val start and end values in Mbp}
@@ -24,24 +16,15 @@ read_probs36(chr, start_val = NULL, end_val = NULL, datapath)
 }
 \value{
 list with \code{probs} = large object of class \code{\link[qtl2geno]{calc_genoprob}} and \code{map} = physical map for selected \code{chr}
-
-list with \code{probs} = large object of class \code{\link[qtl2geno]{calc_genoprob}}
- and \code{map} = physical map for selected \code{chr} region
 }
 \description{
-Uses readRDS to read object.
-
 Uses readRDS to read object.
 }
 \examples{
 \dontrun{read_probs(chr, datapath)}
 
-\dontrun{read_probs36(chr, start_val, end_val, dirpath)}
-
 }
 \author{
-Brian S Yandell, \email{brian.yandell@wisc.edu}
-
 Brian S Yandell, \email{brian.yandell@wisc.edu}
 }
 \keyword{utilities}

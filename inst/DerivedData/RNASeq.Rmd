@@ -1,0 +1,68 @@
+---
+title: "RNASeq"
+author: "Brian S. Yandell"
+date: "3/23/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+suppressPackageStartupMessages({
+  library(DOread)
+  library(feather)
+})
+```
+
+```{r}
+datapath <- "~/Documents/Research/attie_alan/DO/"
+dirpath <- file.path(datapath, "data", "DerivedData")
+```
+
+```{r}
+load(file.path(datapath, "rna_seq", "DO381_islet.RData"))
+```
+
+```{r}
+ls()
+```
+
+```{r}
+annot.samples$Mouse.ID <- stringr::str_replace(annot.samples$Mouse.ID, "DO-0*", "")
+head(annot.samples)
+```
+
+```{r}
+head(annot.mrna)
+```
+
+Save annotations in RDS files.
+
+```{r}
+if(!dir.exists(file.path(dirpath, "RNAseq")))
+  dir.create(file.path(dirpath, "RNAseq"))
+```
+
+```{r}
+saveRDS(annot.mrna, file = file.path(dirpath, "RNAseq", "annot.mrna.rds"))
+```
+
+```{r}
+saveRDS(annot.samples,
+        file = file.path(dirpath, "RNAseq", "annot.samples.rds"))
+```
+
+Save `expr.mrna` in feather file. First create mouse ID column
+
+```{r}
+expr.mrna <- data.frame(Mouse.ID = annot.samples$Mouse.ID, expr.mrna,
+                        stringsAsFactors = FALSE)
+```
+
+
+```{r}
+write_feather(expr.mrna, file.path(dirpath, "RNAseq", "expr.mrna.feather"))
+```
+

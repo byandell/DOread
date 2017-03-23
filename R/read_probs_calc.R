@@ -1,24 +1,5 @@
-# Half-way redo of read_probs to align with new R/qtl2 data format
-# calc_genoprob attributes: is_x_chr, alleles, alleleprobs, and crosstype
-
-#' Read genotype probability object from file
-#'
-#' Uses readRDS to read object.
-#'
-#' @param chr vector of chromosome identifiers
-#' @param datapath name of folder with Derived Data
-#' @param map genome map as list of chromosome maps
-#'
-#' @return list with \code{probs} = large object of class \code{\link[qtl2geno]{calc_genoprob}} and \code{map} = physical map for selected \code{chr}
-#'
-#' @author Brian S Yandell, \email{brian.yandell@@wisc.edu}
-#' @keywords utilities
-#'
-#' @examples
-#' \dontrun{read_probs(chr, datapath)}
-#'
-#' @export
-read_probs_rds <- function(chr=NULL, datapath,
+# Read genotype probability object from file
+read_probs_calc <- function(chr=NULL, datapath,
                        map = readRDS(file.path(datapath, "pmap.rds"))) {
   read_all_probs <- is.null(chr)
 
@@ -41,27 +22,13 @@ read_probs_rds <- function(chr=NULL, datapath,
   list(probs = convert_probs(probs),
        map = map)
 }
-#' Read genotype probability object from file
-#'
-#' Uses readRDS to read object.
-#'
-#' @param chr vector of chromosome identifiers
-#' @param start_val, end_val start and end values in Mbp
-#' @param datapath name of folder with Derived Data
-#'
-#' @return list with \code{probs} = large object of class \code{\link[qtl2geno]{calc_genoprob}}
-#'  and \code{map} = physical map for selected \code{chr} region
-#'
-#' @author Brian S Yandell, \email{brian.yandell@@wisc.edu}
-#' @keywords utilities
-#'
-#' @examples
-#' \dontrun{read_probs36(chr, start_val, end_val, dirpath)}
-#'
-#' @export
-#' @rdname read_probs_rds
+# Read genotype probability object from file
 #' @importFrom qtl2scan interp_map
-read_probs36_rds <- function(chr, start_val=NULL, end_val=NULL, datapath, map=NULL) {
+read_probs36_calc <- function(chr=NULL, start_val=NULL, end_val=NULL, datapath, map=NULL) {
+
+  if(is.null(chr))
+    stop("must supply chr")
+
   attieDO <- readRDS(file.path(datapath,"attieDO.rds"))  # cross object
   probs1 <- readRDS(file.path(datapath,
                               paste0("attieDO_probs", chr, ".rds")))
