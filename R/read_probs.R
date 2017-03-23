@@ -5,6 +5,8 @@
 #' @param chr vector of chromosome identifiers
 #' @param start_val, end_val start and end values in Mbp
 #' @param datapath name of folder with Derived Data
+#' @param allele read haplotype allele probabilities (if \code{TRUE}) or diplotype allele-pair probabilities (if \code{FALSE})
+#' @param method method of genoprob storage
 #'
 #' @return list with \code{probs} = large object of class \code{\link[qtl2geno]{calc_genoprob}} and \code{map} = physical map for selected \code{chr}
 #'
@@ -18,7 +20,7 @@
 read_probs <- function(chr=NULL, start_val=NULL, end_val=NULL, datapath,
                        allele = TRUE, method = c("feather","calc")) {
 
-  method <- match.arg(class)
+  method <- match.arg(method)
 
   switch(method,
          feather = {
