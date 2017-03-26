@@ -16,7 +16,7 @@ read_probs_feather <- function(chr=NULL, start_val=NULL, end_val=NULL, datapath)
         wh <- which(map[[chr]] >= start_val &
                       map[[chr]] <= end_val)
         map[[chr]] <- map[[chr]][wh]
-        probs <- subset(probs1, mar = wh)
+        probs <- subset(probs, mar = wh)
       }
     }
   }

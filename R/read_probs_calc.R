@@ -1,5 +1,5 @@
 # Read genotype probability object from file
-read_probs_calc <- function(chr=NULL, datapath,
+read_probs_calc <- function(chr=NULL, start_val=NULL, end_val=NULL, datapath,
                        map = readRDS(file.path(datapath, "pmap.rds"))) {
   read_all_probs <- is.null(chr)
 
@@ -14,9 +14,18 @@ read_probs_calc <- function(chr=NULL, datapath,
   } else {
     ## Read in probs for selected chromosomes and cbind.
     probs <- readRDS(file.path(datapath, paste0("probs_", chr[1], ".rds")))
-    if(length(chr) > 1) for(chri in chr[-1])
+    if(length(chr) > 1) for(chri in chr[-1]) {
       probs <- cbind(probs,
                      readRDS(file.path(datapath, paste0("probs_", chri, ".rds"))))
+    } else {
+      if(!is.null(start_val) & !is.null(end_val)) {
+        ## Reduce to region of interest.
+        wh <- which(map[[chr]] >= start_val &
+                      map[[chr]] <= end_val)
+        map[[chr]] <- map[[chr]][wh]
+        probs1[[chr]] <- probs1[[chr]][,,wh]
+      }
+    }
     map <- map[chr]
   }
   list(probs = convert_probs(probs),
