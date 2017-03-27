@@ -1,6 +1,6 @@
 #' Read genotype probability object from file
 #'
-#' Uses readRDS to read object.
+#' Read object from file stored according to method.
 #'
 #' @param chr vector of chromosome identifiers
 #' @param start_val, end_val start and end values in Mbp
@@ -23,12 +23,7 @@ read_probs <- function(chr=NULL, start_val=NULL, end_val=NULL, datapath,
   method <- match.arg(method)
 
   switch(method,
-         feather = {
-           if(allele)
-             read_probs_feather(chr, start_val, end_val, datapath)
-           else
-             read_probs36_feather(chr, start_val, end_val, datapath)
-         },
+         feather = read_probs_feather(chr, start_val, end_val, datapath, allele),
          calc = {
            if(allele)
              read_probs_calc(chr, start_val, end_val, datapath)

@@ -23,7 +23,7 @@ read_probs_calc <- function(chr=NULL, start_val=NULL, end_val=NULL, datapath,
         wh <- which(map[[chr]] >= start_val &
                       map[[chr]] <= end_val)
         map[[chr]] <- map[[chr]][wh]
-        probs1[[chr]] <- probs1[[chr]][,,wh]
+        probs[[chr]] <- probs[[chr]][,,wh]
       }
     }
     map <- map[chr]
