@@ -1,9 +1,4 @@
-#' Convert probs object to new format.
-#'
-#' @param object object of class \code{\link[qtl2geno]{calc_genoprob}} computed with old format
-#'
-#' @export
-#'
+# Convert probs object to new format.
 convert_probs <- function(object) {
   # calc_genoprob attributes: is_x_chr, alleles, alleleprobs, and crosstype
 
@@ -24,13 +19,7 @@ convert_probs <- function(object) {
   class(out) <- class(object)
   out
 }
-#' Modify probs object in new format.
-#'
-#' @param object object of class \code{\link[qtl2geno]{calc_genoprob}}
-#' @param newprob matrix of new LOD values
-#'
-#' @export
-#'
+# Modify probs object in new format.
 modify_probs <- function(object, newprob) {
   # calc_genoprob attributes: is_x_chr, alleles, alleleprobs, and crosstype
 
