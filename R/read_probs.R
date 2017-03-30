@@ -22,12 +22,48 @@ read_probs <- function(chr=NULL, start_val=NULL, end_val=NULL, datapath,
 
   method <- match.arg(method)
 
-  switch(method,
-         feather = read_probs_feather(chr, start_val, end_val, datapath, allele),
-         calc = {
-           if(allele)
-             read_probs_calc(chr, start_val, end_val, datapath)
-           else
-             read_probs36_calc(chr, start_val, end_val, datapath)
-         })
+  map <- readRDS(file.path(datapath, "pmap.rds"))
+
+  if(is.null(chr)) {
+    if(!allele & method == "calc")
+      stop("must supply a chr")
+
+    chr <- names(map)
+  }
+
+  map <- map[chr]
+
+  probs <- switch(method,
+                  feather = read_probs_feather(chr, datapath, allele),
+                  calc    = read_probs_calc   (chr, datapath, allele))
+
+  # Map may have extra markers. Trim.
+  dnames <- dimnames(probs)$mar[chr]
+  for(chri in chr) {
+    wh <- match(dnames[[chri]], names(map[[chri]]))
+    map[[chri]] <- map[[chri]][wh]
+  }
+
+  if(length(chr) == 1) {
+    if(!is.null(start_val) & !is.null(end_val)) {
+
+      ## Reduce to region of interest.
+      wh <- which(map[[chr]] >= start_val &
+                    map[[chr]] <= end_val)
+      map[[chr]] <- map[[chr]][wh]
+
+      switch(method,
+             calc = {
+               pr <- probs
+               pr[[chr]] <- pr[[chr]][,,wh, drop = FALSE]
+               probs <- modify_object(probs, pr)
+             },
+             feather = {
+               probs <- subset(probs, mar = wh)
+             })
+    }
+  }
+
+  list(probs = probs,
+       map = map)
 }

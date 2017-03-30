@@ -14,20 +14,8 @@ convert_probs <- function(object) {
 
   for(obj in c("crosstype", "is_x_chr", "alleles", "alleleprobs")) {
     if(!is.null(object[[obj]]))
-    attr(out, obj) <- object[[obj]]
+      attr(out, obj) <- object[[obj]]
   }
   class(out) <- class(object)
   out
-}
-# Modify probs object in new format.
-modify_probs <- function(object, newprob) {
-  # calc_genoprob attributes: is_x_chr, alleles, alleleprobs, and crosstype
-
-  for(obj in c("crosstype", "is_x_chr", "alleles", "alleleprobs")) {
-    x_attr <- attr(object, obj)
-    if(!is.null(x_attr))
-      attr(newprob, obj) <- x_attr
-  }
-  class(newprob) <- class(object)
-  newprob
 }
