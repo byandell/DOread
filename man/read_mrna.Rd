@@ -4,12 +4,13 @@
 \alias{read_mrna}
 \title{Read mrna expression object from file}
 \usage{
-read_mrna(indID, chr = NULL, start_val = NULL, end_val = NULL, datapath)
+read_mrna(indID, chr_id = NULL, start_val = NULL, end_val = NULL,
+  datapath)
 }
 \arguments{
 \item{indID}{individual IDs to match with phenotypes}
 
-\item{chr}{vector of chromosome identifiers}
+\item{chr_id}{vector of chromosome identifiers}
 
 \item{start_val, }{end_val start and end values in Mbp}
 

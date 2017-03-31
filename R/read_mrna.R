@@ -3,7 +3,7 @@
 #' Uses feather to read mrna expression object and associated annotations.
 #'
 #' @param indID individual IDs to match with phenotypes
-#' @param chr vector of chromosome identifiers
+#' @param chr_id vector of chromosome identifiers
 #' @param start_val, end_val start and end values in Mbp
 #' @param datapath name of folder with Derived Data
 #' @param allele read haplotype allele probabilities (if \code{TRUE}) or diplotype allele-pair probabilities (if \code{FALSE})
@@ -18,7 +18,7 @@
 #' \dontrun{read_probs(chr, datapath)}
 #'
 #' @export
-read_mrna <- function(indID, chr=NULL, start_val=NULL, end_val=NULL, datapath) {
+read_mrna <- function(indID, chr_id=NULL, start_val=NULL, end_val=NULL, datapath) {
 
   annot.mrna <-
     dplyr::mutate(
