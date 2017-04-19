@@ -18,17 +18,23 @@
 #' \dontrun{read_probs(chr, datapath)}
 #'
 #' @export
+#' @importFrom dplyr filter mutate rename
+#' @importFrom feather read_feather
+#'
 read_mrna <- function(indID, chr_id=NULL, start_val=NULL, end_val=NULL, datapath) {
 
   annot.mrna <-
-    dplyr::mutate(
-      dplyr::filter(
-        readRDS(file.path(datapath, "RNAseq", "annot.mrna.rds")),
-        chr == chr_id,
-        start >= start_val * 1e6,
-        end <= end_val * 1e6),
-      start = start * 1e-6,
-      end = end * 1e-6)
+    dplyr::rename(
+      dplyr::mutate(
+        dplyr::filter(
+          readRDS(file.path(datapath, "RNAseq", "annot.mrna.rds")),
+          chr == chr_id,
+          start >= start_val * 1e6,
+          end <= end_val * 1e6),
+        start = start * 1e-6,
+        end = end * 1e-6,
+        middle_point = middle_point * 1e-6),
+      pos = middle_point)
 
   expr.mrna <- feather::read_feather(file.path(datapath, "RNAseq", "expr.mrna.feather"),
                                      c("Mouse.ID", annot.mrna$id))
