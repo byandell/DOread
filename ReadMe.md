@@ -16,7 +16,7 @@ You can install R/qtl2 from [GitHub](https://github.com/rqtl).
 
 You will need the following packages for DOread:
 
-    install.packages(c("broman", "dplyr"))
+    install.packages(c("broman", "dplyr", "feather"))
 
 Then, install R/qtl2 using `devtools::install_github()`.
 
