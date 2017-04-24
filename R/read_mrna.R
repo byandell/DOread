@@ -72,6 +72,7 @@ read_mrna <- function(chr_id=NULL, start_val=NULL, end_val=NULL, datapath) {
           id = gene_id),
         by = "id"),
       local = !is.na(qtl_pos) &
+        chr == chr_id &
         pmax(start,end) >= start_val &
         pmin(start,end) <= end_val)
 
