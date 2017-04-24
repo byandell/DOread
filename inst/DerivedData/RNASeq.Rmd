@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 suppressPackageStartupMessages({
   library(DOread)
   library(feather)
+  library(readxl)
 })
 ```
 
@@ -49,6 +50,20 @@ if(!dir.exists(file.path(dirpath, "RNAseq")))
 saveRDS(annot.mrna, file = file.path(dirpath, "RNAseq", "annot.mrna.rds"))
 ```
 
+There are mouse duplicates. Throw them all out.
+
+```{r}
+(dupes <- sort(unique(c(which(duplicated(annot.samples$Mouse.ID)),
+                  which(duplicated(annot.samples$Mouse.ID, fromLast = TRUE))))))
+```
+
+```{r}
+if(length(dupes)) {
+  annot.samples <- annot.samples[-dupes, ]
+  expr.mrna <- expr.mrna[-dupes, ]
+}
+```
+
 ```{r}
 saveRDS(annot.samples,
         file = file.path(dirpath, "RNAseq", "annot.samples.rds"))
@@ -64,5 +79,23 @@ expr.mrna <- data.frame(Mouse.ID = annot.samples$Mouse.ID, expr.mrna,
 
 ```{r}
 write_feather(expr.mrna, file.path(dirpath, "RNAseq", "expr.mrna.feather"))
+```
+
+## Expression Peaks
+
+```{r}
+system.time(peaks <- read_excel(file.path(datapath, "rna_seq", "all_suggestive_qtls_mrna.xlsx")))
+```
+
+```{r}
+table(table(peaks$gene_id))
+```
+
+```{r}
+write_feather(peaks, file.path(dirpath, "RNAseq", "peaks.mrna.feather"))
+```
+
+```{r}
+system.time(peaks <- read_feather(file.path(dirpath, "RNAseq", "peaks.mrna.feather")))
 ```
 

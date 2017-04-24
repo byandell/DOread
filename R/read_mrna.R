@@ -2,7 +2,6 @@
 #'
 #' Uses feather to read mrna expression object and associated annotations.
 #'
-#' @param indID individual IDs to match with phenotypes
 #' @param chr_id vector of chromosome identifiers
 #' @param start_val, end_val start and end values in Mbp
 #' @param datapath name of folder with Derived Data
@@ -18,33 +17,68 @@
 #' \dontrun{read_probs(chr, datapath)}
 #'
 #' @export
-#' @importFrom dplyr filter mutate rename
+#' @importFrom dplyr filter group_by inner_join mutate rename summarize ungroup
 #' @importFrom feather read_feather
 #'
-read_mrna <- function(indID, chr_id=NULL, start_val=NULL, end_val=NULL, datapath) {
+read_mrna <- function(chr_id=NULL, start_val=NULL, end_val=NULL, datapath) {
 
+  start_val6 <- 1e6 * start_val
+  end_val6 <- 1e6 * end_val
+
+  # Identify mRNA located in region or with QTL peak in region.
+  peaks.mrna <- feather::read_feather(file.path(datapath, "RNAseq", "peaks.mrna.feather"))
+  peaks.mrna <- dplyr::mutate(
+    dplyr::filter(peaks.mrna,
+                  ((gene_chr == chr_id &
+                      pmax(gene_start, gene_end) >= start_val6 &
+                      pmin(gene_start, gene_end) <= end_val6) |
+                     (qtl_chr == chr_id &
+                        qtl_pos >= start_val6 &
+                        qtl_pos <= end_val6))),
+    gene_start = 1e-6 * gene_start,
+    gene_end = 1e-6 * gene_end,
+    qtl_pos = 1e-6 * qtl_pos)
+
+  mrna_ids <- unique(peaks.mrna$gene_id)
+
+  # Get annotations for unique mRNA IDs
   annot.mrna <-
     dplyr::rename(
       dplyr::mutate(
         dplyr::filter(
           readRDS(file.path(datapath, "RNAseq", "annot.mrna.rds")),
-          chr == chr_id,
-          start >= start_val * 1e6,
-          end <= end_val * 1e6),
+          id %in% mrna_ids),
         start = start * 1e-6,
         end = end * 1e-6,
         middle_point = middle_point * 1e-6),
       pos = middle_point)
 
-  expr.mrna <- feather::read_feather(file.path(datapath, "RNAseq", "expr.mrna.feather"),
-                                     c("Mouse.ID", annot.mrna$id))
-  expr_mx <- matrix(NA, length(indID), ncol(expr.mrna) - 1)
-  m <- match(expr.mrna$Mouse.ID, indID, nomatch = 0)
-  if(!any(m > 0))
-    stop("no individuals selected")
+  annot.mrna <-
+    dplyr::mutate(
+      dplyr::inner_join(
+        annot.mrna,
+        dplyr::rename(
+          dplyr::ungroup(
+            dplyr::summarize(
+              dplyr::group_by(peaks.mrna, gene_id),
+              qtl_ct = n(),
+              qtl_pos = ifelse(any(qtl_chr == chr_id &
+                                   qtl_pos >= start_val &
+                                   qtl_pos <= end_val),
+                               qtl_pos[qtl_chr == chr_id], NA),
+              multi = paste0(qtl_chr, "@",
+                             round(qtl_pos), ":",
+                             round(lod), collapse = ","))),
+          id = gene_id),
+        by = "id"),
+      local = !is.na(qtl_pos) &
+        pmax(start,end) >= start_val &
+        pmin(start,end) <= end_val)
 
-  expr_mx[m,] <- as.matrix(expr.mrna[m > 0, -1])
-  dimnames(expr_mx) <- list(indID, colnames(expr.mrna)[-1])
+  # Get expression data.
+  expr.mrna <- as.data.frame(feather::read_feather(file.path(datapath, "RNAseq", "expr.mrna.feather"),
+                                     c("Mouse.ID", annot.mrna$id)))
+  rownames(expr.mrna) <- expr.mrna$Mouse.ID
 
-  list(expr = expr_mx, annot = annot.mrna)
+  list(expr = expr.mrna[,-1], annot = annot.mrna, peaks = peaks.mrna)
 }
