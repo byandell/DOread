@@ -66,7 +66,7 @@ read_mrna <- function(chr_id=NULL, start_val=NULL, end_val=NULL, datapath) {
                                    qtl_pos >= start_val &
                                    qtl_pos <= end_val),
                                qtl_pos[qtl_chr == chr_id], NA),
-              multi = paste0(qtl_chr, "@",
+              QTL = paste0(qtl_chr, "@",
                              round(qtl_pos), ":",
                              round(lod), collapse = ","))),
           id = gene_id),
