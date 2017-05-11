@@ -5,7 +5,7 @@
 \title{Read mrna expression object from file}
 \usage{
 read_mrna(chr_id = NULL, start_val = NULL, end_val = NULL, datapath,
-  local = TRUE)
+  local = TRUE, qtl = FALSE)
 }
 \arguments{
 \item{chr_id}{vector of chromosome identifiers}
@@ -14,8 +14,10 @@ read_mrna(chr_id = NULL, start_val = NULL, end_val = NULL, datapath,
 
 \item{datapath}{name of folder with Derived Data}
 
-\item{local}{read only mRNA values local to region (if \code{TRUE}); 
+\item{local}{read only mRNA values local to region if \code{TRUE};
 otherwise include distal mRNA values that map to region}
+
+\item{qtl}{read only mRNA values with QTL peak in region if \code{TRUE}}
 }
 \value{
 list with \code{expr} = matrix of expression mRNA values in region and \code{annot} = data frame of annotations for mRNA.
