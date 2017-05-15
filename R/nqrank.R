@@ -1,20 +1,14 @@
-#' Quantile rank
-#'
-#' Quantile rank taken from R/qtl.
-#'
-#' @param x numeric vector
-#' @param jitter jitter if \code{TRUE} (default \code{FALSE})
-#'
-#' @return transformed values
-#'
-#' @author Brian S Yandell, \email{brian.yandell@@wisc.edu}
-#' @keywords utilities
-#'
-#' @examples
-#' dontrun(nqrank(x))
-#'
-#' @export
 nqrank <- function (x, jitter = FALSE)
 {
-  qtl::nqrank(x, jitter)
+  ## qtl::nqrank(x, jitter)
+  y <- x[!is.na(x)]
+  themean <- mean(y, na.rm = TRUE)
+  thesd <- sd(y, na.rm = TRUE)
+  y[y == Inf] <- max(y[y < Inf]) + 10
+  y[y == -Inf] <- min(y[y > -Inf]) - 10
+  if (jitter)
+    y <- rank(y + runif(length(y))/(sd(y) * 10^8))
+  else y <- rank(y)
+  x[!is.na(x)] <- qnorm((y - 0.5)/length(y))
+  x * thesd/sd(x, na.rm = TRUE) - mean(x, na.rm = TRUE) + themean
 }

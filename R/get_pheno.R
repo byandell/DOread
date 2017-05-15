@@ -15,7 +15,10 @@
 #' \dontrun{get_pheno(phe, analyses_tbl)}
 #'
 #' @export
-#' @importFrom broman winsorize
+#'
+#' @importFrom assertthat assert_that is.number
+#' @importFrom stats quantile
+#'
 get_pheno <- function(phe, analyses_tbl, transform = TRUE) {
   phename <- unique(analyses_tbl$pheno)
   #  indID <- unlist(phe[,1]) ## IDs assumed to be first trait.
@@ -31,12 +34,12 @@ get_pheno <- function(phe, analyses_tbl, transform = TRUE) {
         phe[,phename[i]] <- get(transf[i])(unlist(phe[,phename[i]]) + offset[i])
     }
     ## Parameter to winsorize will later be a value.
-    if(any(is.logical(winsorize <- analyses_tbl$winsorize)))
-      winsorize <- rep(0.02, length(phename))
-    winsor <- (winsorize > 0)
+    if(any(is.logical(winz <- analyses_tbl$winsorize)))
+      winz <- rep(0.02, length(phename))
+    winsor <- (winz > 0)
     if(any(winsor)) {
       for(i in seq_along(winsor)[winsor])
-        phe[,phename[i]] <- broman::winsorize(unlist(phe[,phename[i]]), winsorize[i])
+        phe[,phename[i]] <- winsorize(unlist(phe[,phename[i]]), winz[i])
     }
   }
   phe

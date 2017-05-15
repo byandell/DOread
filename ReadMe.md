@@ -16,12 +16,7 @@ You can install R/qtl2 from [GitHub](https://github.com/rqtl).
 
 You will need the following packages for DOread:
 
-    install.packages(c("broman", "dplyr", "feather"))
-
-Then, install R/qtl2 using `devtools::install_github()`.
-
-    library(devtools)
-    install_github(paste0("rqtl/qtl2", c("scan")))
+    install.packages(c("assertthat", "dplyr", "feather"))
 
 Once you have installed these, install qtl2ggplot as
 
