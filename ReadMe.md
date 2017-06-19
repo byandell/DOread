@@ -9,16 +9,13 @@ R/DOread is a support library for extending [R/qtl2](http://kbroman.org/qtl2), p
 
 ### Installation
 
-R/qtl2 is early in development and so is not yet available on
-[CRAN](http://cran.r-project.org).
-
-You can install R/qtl2 from [GitHub](https://github.com/rqtl).
+You can install R/DOread from [GitHub](https://github.com/rqtl).
 
 You will need the following packages for DOread:
 
     install.packages(c("assertthat", "dplyr", "feather", "dbplyr"))
 
-Once you have installed these, install qtl2ggplot as
+Once you have installed these, install DOread as
 
     install_github("byandell/DOread")
 
