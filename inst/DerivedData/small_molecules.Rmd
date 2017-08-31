@@ -1,0 +1,44 @@
+---
+title: "Small Molecules"
+author: "Brian S. Yandell"
+date: "8/29/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+See Box folder [MS data sets for DO project](https://uwmadison.app.box.com/folder/33549545179)
+and subfolders
+
+* RDS files for all QTLs
+* Gatti R scripts
+* Raw and UW normalized data files
+
+See also [Dan Gatti's AttieMetabolomics GitHub](https://github.com/dmgatti/AttieMetabolomics) and
+[Dan Gatti's FTP site](ftp://ftp.jax.org/dgatti/_for_Mark/liver/).
+
+```{r}
+datapath <- "~/Documents/Research/attie_alan/DO/data/DerivedData/"
+```
+
+```{r}
+livern <- readRDS(file.path(datapath, "jax", "attie_liver_lipids_normalized.rds"))
+```
+
+```{r}
+liverz <- readRDS(file.path(datapath, "jax", "attie_liver_lipids_zscore_normalized.rds"))
+```
+
+The following is the scan1 object.
+
+```{r}
+liver <- readRDS(file.path(datapath, "jax", "liver_lipids_jax_norm_all_qtl.rds"))
+```
+
+```{r}
+liverd <- readRDS(file.path(datapath, "jax", "liver_lipid_pheno.descr.rds"))
+```
+
+The `pheno.descr` file is different from what Karl used. Further, some of the phenotypes are mixed in with the phenotype table, and the `Mouse.ID` may be somewhat different. All fixable but will take careful examination. 
