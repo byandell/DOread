@@ -19,9 +19,24 @@ and subfolders
 See also [Dan Gatti's AttieMetabolomics GitHub](https://github.com/dmgatti/AttieMetabolomics) and
 [Dan Gatti's FTP site](ftp://ftp.jax.org/dgatti/_for_Mark/liver/).
 
+Types of molecular measurements:
+
+* liver lipids
+* cecum lipids
+* plasma lipids
+* liver metabolites
+
+```{r message=FALSE}
+library(stringr)
+library(dplyr)
+library(tidyr)
+```
+
 ```{r}
 datapath <- "~/Documents/Research/attie_alan/DO/data/DerivedData/"
 ```
+
+The following are normalized and zscore-normalized data.
 
 ```{r}
 livern <- readRDS(file.path(datapath, "jax", "attie_liver_lipids_normalized.rds"))
@@ -37,8 +52,148 @@ The following is the scan1 object.
 liver <- readRDS(file.path(datapath, "jax", "liver_lipids_jax_norm_all_qtl.rds"))
 ```
 
+Here is information on covariates and short name.
+
 ```{r}
 liverd <- readRDS(file.path(datapath, "jax", "liver_lipid_pheno.descr.rds"))
 ```
 
+```{r}
+cecumd <- readRDS(file.path(datapath, "jax", "cecum_lipid_pheno.descr.rds"))
+```
+
+```{r}
+plasmad <- readRDS(file.path(datapath, "jax", "plasma_lipids_pheno.descr.rds"))
+```
+
+```{r}
+metabd <- readRDS(file.path(datapath, "jax", "liver_metabolite_pheno.descr.rds"))
+```
+
 The `pheno.descr` file is different from what Karl used. Further, some of the phenotypes are mixed in with the phenotype table, and the `Mouse.ID` may be somewhat different. All fixable but will take careful examination. 
+
+## Transform into Karl type files
+
+We need the following:
+
+* `analyses_tbl`: `c("pheno","output","pheno_group","longname","pheno_type","model","transf","offset","winsorize",
+"sex","diet_days","Ins_per_islet","Glu_0min","Ins_0min","weight_sac","oGTT_weight",
+"DOwave2","DOwave3","DOwave4","DOwave5","Gcg_content")`
+* `peaks_tbl`: `c("pheno","longname","output","pheno_group","pheno_type","chr","lod","pos")`
+* `pheno_tbl`: data frame with mouseID as rownames, pheno as colnames
+* `covar_mx`: matrix with mouseID as rownmaes, covar as colnames
+
+### Phenotypes
+
+Phenotypes are in files with names like `attie_liver_lipids_zscore_normalized.rds`. That is, they are Z-scores of Jax-normalized data. These files have phenotypes prepended by covariates and some extra columns for mitochondria and chr `Y` (`chrM`, `chrY`). 
+
+Approach here is to match `Mouse.ID` and pick up phenotypes. These are large files (1Gb).
+
+### Peaks
+
+These have names like `liver_lipids_jax_norm_qtl_summary_thresh_6.csv`.
+
+```{r}
+peaks_liver_lipids <- read.csv(file.path(datapath, "jax", "liver_lipids_jax_norm_qtl_summary_thresh_6.csv"))
+```
+
+These folders have column names: `analyte`, `marker`, `chr`, `pos`, `lod`. These will have to be expanded to match `peaks_tbl`.
+
+### Covariates matrix and Analyses table
+
+Here, covariates are indicated in `liverd$covar_list` as colon-separated names, but all are `sex:generation:Batch`. 
+`Batch` is distinct (I think) for each type of molecule.
+`generation` is DO generation, which should agree with `DOwave` (1=17, 2=18, 3=19, 4=21, 5=2_).
+Turns out `generation` has 5 discrepancies. We will use `DOwave`
+
+The covariate values are with phenotypes as first several columns and some extra columns for mitochondria and chr `Y` (`chrM`, `chrY`). 
+```{r}
+liverz %>%
+  count(chrM, chrY) %>%
+  spread(chrM, n)
+```
+
+Need to add `generation` and `Batch`, but there will be four `Batch` (at least):
+`Batch_liver_lipid`, `Batch_plasma_lipids`, `Batch_cecum_lipids`, `Batch_liver_metabolites`.
+These need to be added as columns in `analyses_tbl` (T/F) and as columns in `covar_mx`. Challenge is that these are categorical, so either need to add many columns or identify as categorical and expand later. This is what Dan did, which is a nice solution:
+
+```{r eval=FALSE}
+covar.names = strsplit(pheno.descr$covar_list, ":")
+covar.names = unique(unlist(covar.names))
+# There may be NA's in the covar.names.
+covar.names = covar.names[!is.na(covar.names)]
+stopifnot(covar.names %in% colnames(pheno))
+
+f = as.formula(paste("~", paste(covar.names, collapse = "+")))
+addcovar = model.matrix(f, data = pheno)[,-1]
+```
+
+Strategy is to make `covar` a data frame (convert from current format as numeric matrix)
+and use `model.matrix`. We will add columns for `Batch` (note names above) and for `chrM` and `chrY`, which might be useful in the future. Also add `coat_color`. All other covariates are ignored here.
+
+#### Check agreement on covariates
+
+```{r}
+dirpath <- "~/Documents/Research/attie_alan/DO/data"
+datapath <- file.path(dirpath, "DerivedData")
+covar <- readRDS(file.path(datapath, "covar.rds"))
+```
+
+Check sex.
+
+```{r}
+sexl <- liverz$sex
+names(sexl) <- as.numeric(stringr::str_replace(liverz$Mouse.ID, "DO-", ""))
+tmp <- qtl2scan::get_common_ids(covar, sexl)
+table(covar[tmp, "sex"], sexl[tmp])
+```
+
+check wave and generation
+
+```{r}
+covar <- cbind(covar, DOwave = 1 + covar[,"DOwave2"] + 2 * covar[,"DOwave3"] +
+  + 3 * covar[,"DOwave4"] + 4 * covar[,"DOwave5"])
+gen <- liverz$generation
+names(gen) <- as.numeric(str_replace(liverz$Mouse.ID, "DO-", ""))
+tmp <- qtl2scan::get_common_ids(covar, gen)
+table(covar[tmp, "DOwave"], gen[tmp])
+```
+
+
+```{r}
+covar <- cbind(covar, DOwave = 1 + covar[,"DOwave2"] + 2 * covar[,"DOwave3"] +
+  + 3 * covar[,"DOwave4"] + 4 * covar[,"DOwave5"])
+wave <- liverz$wave
+names(wave) <- as.numeric(str_replace(liverz$Mouse.ID, "DO-", ""))
+tmp <- qtl2scan::get_common_ids(covar, wave)
+table(covar[tmp, "DOwave"], wave[tmp])
+```
+
+```{r}
+table(covar[,"DOwave"])
+table(liverz$generation)
+```
+
+```{r}
+tmp2 <- covar[tmp, "DOwave"] < 3 & gen[tmp] == 19
+tmp2 <- names(tmp2[tmp2])
+```
+
+```{r}
+covar[tmp2,]
+```
+
+```{r}
+liverz %>%
+  filter(as.numeric(str_replace(Mouse.ID, "DO-", "")) %in% tmp2) %>%
+  select(1:11)
+```
+
+### Add covariates
+
+Details to be added here. Need to modify `covar`, save as data frame, and also modify `analyses_tbl`. Need to coordinate change to data frame in particular with use of `DOwave` as covariate.
+
+```{r}
+
+```
+
