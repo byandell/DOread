@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 See Box folder [MS data sets for DO project](https://uwmadison.app.box.com/folder/33549545179)
 and subfolders
 
-* RDS files for all QTLs
+* RDS files for all QTLs (genome scans)
 * Gatti R scripts
 * Raw and UW normalized data files
 
@@ -26,6 +26,23 @@ Types of molecular measurements:
 * plasma lipids
 * liver metabolites
 
+Here are the files I think are relevant:
+
+size | type | name
+---- | -------------- | ------------
+961K | mouse by trait | attie_liver_lipids_zscore_normalized.rds
+225K | mouse by trait | attie_liver_metabolites_zscore_normalized.rds
+1.2M | mouse by trait | attie_plasma_lipids_zscore_normalized.rds
+NA | mouse by trait | attie_cecum_lipids_zscore_normalized.rds
+55K | dictionary | cecum_lipid_pheno.descr.rds
+31K | dictionary | liver_lipid_pheno.descr.rds
+2.2K | dictionary | liver_metabolite_pheno.descr.rds
+41K | dictionary | plasma_lipids_pheno.descr.rds
+176K | peaks | cecum_lipids_jax_norm_qtl_summary_thresh_6.csv
+132K | peaks | liver_lipids_jax_norm_qtl_summary_thresh_6.csv
+20K | peaks | liver_metabolites_jax_norm_qtl_summary_thresh_6.csv
+193K | peaks | plasma_lipids_jax_norm_qtl_summary_thresh_6.csv
+
 ```{r message=FALSE}
 library(stringr)
 library(dplyr)
@@ -38,7 +55,7 @@ datapath <- "~/Documents/Research/attie_alan/DO/data/DerivedData/"
 
 The following are normalized and zscore-normalized data.
 
-```{r}
+```{r eval=FALSE}
 livern <- readRDS(file.path(datapath, "jax", "attie_liver_lipids_normalized.rds"))
 ```
 
@@ -46,9 +63,9 @@ livern <- readRDS(file.path(datapath, "jax", "attie_liver_lipids_normalized.rds"
 liverz <- readRDS(file.path(datapath, "jax", "attie_liver_lipids_zscore_normalized.rds"))
 ```
 
-The following is the scan1 object.
+The following is the scan1 object. Not using here.
 
-```{r}
+```{r eval=FALSE}
 liver <- readRDS(file.path(datapath, "jax", "liver_lipids_jax_norm_all_qtl.rds"))
 ```
 
@@ -152,7 +169,7 @@ check wave and generation
 
 ```{r}
 covar <- cbind(covar, DOwave = 1 + covar[,"DOwave2"] + 2 * covar[,"DOwave3"] +
-  + 3 * covar[,"DOwave4"] + 4 * covar[,"DOwave5"])
+  3 * covar[,"DOwave4"] + 4 * covar[,"DOwave5"])
 gen <- liverz$generation
 names(gen) <- as.numeric(str_replace(liverz$Mouse.ID, "DO-", ""))
 tmp <- qtl2scan::get_common_ids(covar, gen)
@@ -189,11 +206,24 @@ liverz %>%
   select(1:11)
 ```
 
-### Add covariates
+## Pull out relevant phenotypes and covariates and analyses stuff.
 
 Details to be added here. Need to modify `covar`, save as data frame, and also modify `analyses_tbl`. Need to coordinate change to data frame in particular with use of `DOwave` as covariate.
 
 ```{r}
-
+liverz <- readRDS(file.path(datapath, "jax", 
+                            "attie_liver_lipids_zscore_normalized.rds"))
+metabz <- readRDS(file.path(datapath, "jax",
+                            "attie_liver_metabolites_zscore_normalized.rds"))
+plasmaz <- readRDS(file.path(datapath, "jax",
+                            "attie_plasma_lipids_zscore_normalized.rds"))
+## don't yet have cecum file.
 ```
 
+Need to extract covariates, compare that Mouse.ID, sex, wave, chrM, chrY agree across all sets. Then need to give Batch unique names and combine.
+
+Need to extract phenos and put in form to be reused.
+
+Need to get analyses info right.
+
+Need to go to CSV files to get peaks.
