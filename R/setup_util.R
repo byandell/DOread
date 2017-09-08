@@ -78,6 +78,19 @@ setup_analyses <- function(peaks, datapath) {
         analyses_tbl,
         pheno:pheno_type, model, transf:ncol(analyses_tbl))
   }
+
+  ## Change DOwave columns to one character column; add small molecule batches
+  analyses_tbl <- dplyr::select(
+    dplyr::mutate(analyses_tbl,
+                  DOwave = DOwave2 | DOwave3 | DOwave4 | DOwave5,
+                  BatchLiverLipid = FALSE,
+                  BatchCecumLipid = FALSE,
+                  BatchLiverMetab = FALSE,
+                  BatchPlasmaLipid = FALSE),
+    -(DOwave2:DOwave5))
+
+  ## Add rows for small molecules here.
+
   analyses_tbl
 }
 
@@ -117,15 +130,24 @@ setup_covar <- function(datapath) {
   covar <- as.data.frame(covar)
 
   # Condense DOwave into one factor.
-  covar <- dplyr::mutate(covar,
-                         wave = 1 + DOwave2 + 2 * DOwave3 +
-                           + 3 * DOwave4 + 4 * DOwave5)
-  covar <- dplyr::select(covar,
-                         -dplyr::contains("DOwave"))
+  if(!("DOwave" %in% colnames(covar))) {
+    covar <- cbind(covar, DOwave = 1 + covar[,"DOwave2"] + 2 * covar[,"DOwave3"] +
+                     3 * covar[,"DOwave4"] + 4 * covar[,"DOwave5"])
+    covar <- covar[, -grep("DOwave[1-5]", colnames(covar))]
+  }
 
   # Convert sex to F=0,M=1
-  covar <- dplyr::mutate(covar,
-                         sex = c("F","M")[1 + sex])
+  covar$sex = c("F","M")[1 + covar$sex]
+
+  # Get small molecule variables
+  covar_small <- readRDS(file.path(datapath, "molecule", "covar_small.rds"))
+
+  # Combine these together.
+  covar$id <- rownames(covar)
+  covar_small$id <- rownames(covar_small)
+  covar <- dplyr::left_join(covar, covar_small, by = "id")
+  rownames(covar) <- covar$id
+  covar$id <- NULL
 
   covar
 }

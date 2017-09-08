@@ -60,13 +60,13 @@ datapath <- "~/Documents/Research/attie_alan/DO/data/DerivedData/"
 The `pheno.descr` files are different from what Karl used as dictionary, so will have to construct that manually. Phenotypes follow covariates in the mouse by trait tables, and the `Mouse.ID` is `DO-nnn`, as apposed to `nn` and `nnn` in Karl's work. All fixable but will take careful examination. 
 
 ```{r}
-liverz <- readRDS(file.path(datapath, "jax", 
+liverz <- readRDS(file.path(datapath, "molecule", 
                             "attie_liver_lipids_zscore_normalized.rds"))
-metabz <- readRDS(file.path(datapath, "jax",
+metabz <- readRDS(file.path(datapath, "molecule",
                             "attie_liver_metabolites_zscore_normalized.rds"))
-plasmaz <- readRDS(file.path(datapath, "jax",
+plasmaz <- readRDS(file.path(datapath, "molecule",
                             "attie_plasma_lipids_zscore_normalized.rds"))
-cecumz <- readRDS(file.path(datapath, "jax",
+cecumz <- readRDS(file.path(datapath, "molecule",
                             "attie_cecum_lipids_zscore_normalized.rds"))
 ```
 
@@ -74,6 +74,10 @@ cecumz <- readRDS(file.path(datapath, "jax",
 
 ```{r}
 covar <- readRDS(file.path(datapath, "covar.rds"))
+if(is.null(covar$DOwave)) {}
+  covar <- cbind(covar, DOwave = 1 + covar[,"DOwave2"] + 2 * covar[,"DOwave3"] +
+    3 * covar[,"DOwave4"] + 4 * covar[,"DOwave5"])
+}
 ```
 
 Check sex.
@@ -88,8 +92,6 @@ table(covar[tmp, "sex"], sexl[tmp])
 check wave and generation
 
 ```{r}
-covar <- cbind(covar, DOwave = 1 + covar[,"DOwave2"] + 2 * covar[,"DOwave3"] +
-  3 * covar[,"DOwave4"] + 4 * covar[,"DOwave5"])
 wave <- liverz$wave
 names(wave) <- as.numeric(str_replace(liverz$Mouse.ID, "DO-", ""))
 tmp <- qtl2scan::get_common_ids(covar, wave)
@@ -97,8 +99,6 @@ table(covar[tmp, "DOwave"], wave[tmp])
 ```
 
 ```{r}
-covar <- cbind(covar, DOwave = 1 + covar[,"DOwave2"] + 2 * covar[,"DOwave3"] +
-  3 * covar[,"DOwave4"] + 4 * covar[,"DOwave5"])
 gen <- liverz$generation
 names(gen) <- as.numeric(str_replace(liverz$Mouse.ID, "DO-", ""))
 tmp <- qtl2scan::get_common_ids(covar, gen)
@@ -154,15 +154,67 @@ Approach here is to match `Mouse.ID` and pick up phenotypes. These are large fil
 
 ### Peaks
 
+* `peaks_tbl`: `c("pheno","longname","output","pheno_group","pheno_type","chr","lod","pos")`
+
 These have names like `liver_lipids_jax_norm_qtl_summary_thresh_6.csv`.
 
 ```{r}
-peaks_liver_lipids <- read.csv(file.path(datapath, "jax", "liver_lipids_jax_norm_qtl_summary_thresh_6.csv"))
+setup_molecule_peaks <- function(datapath, filename, groupname) {
+  read.csv(file.path(datapath, "molecule", filename),
+           stringsAsFactors = FALSE) %>%
+    rename(pheno = analyte) %>%
+    mutate(longname = pheno,
+           output = pheno,
+           pheno_type = "molecule",
+           pheno_group = groupname) %>%
+    select(pheno,longname,output,pheno_group,pheno_type,chr,lod,pos)
+}
 ```
 
-These folders have column names: `analyte`, `marker`, `chr`, `pos`, `lod`. These will have to be expanded to match `peaks_tbl`.
+```{r}
+peaks_liver_lipid <- 
+  setup_molecule_peaks(datapath,
+                       "liver_lipids_jax_norm_qtl_summary_thresh_6.csv",
+                       "liver_lipid")
+peaks_plasma_lipid <- 
+  setup_molecule_peaks(datapath,
+                       "plasma_lipids_jax_norm_qtl_summary_thresh_6.csv",
+                       "plasma_lipid")
+peaks_liver_metab <- 
+  setup_molecule_peaks(datapath,
+                       "liver_metabolites_jax_norm_qtl_summary_thresh_6.csv",
+                       "liver_metab")
+peaks_cecum_lipid <- 
+  setup_molecule_peaks(datapath,
+                       "cecum_lipids_jax_norm_qtl_summary_thresh_6.csv",
+                       "cecum_lipid")
+```
+
+Do we have to adjust names that overlap? Yes. Need to adjust here and in the `pheno` data frame.
+
+```{r}
+llip <- sort(unique(peaks_liver_lipid$pheno))
+plip <- sort(unique(peaks_plasma_lipid$pheno))
+clip <- sort(unique(peaks_cecum_lipid$pheno))
+c(liver = length(llip), plasma = length(plip), cecum = length(clip))
+table(table(c(llip,plip)))
+table(table(c(llip,clip)))
+table(table(c(clip,plip)))
+table(table(c(llip,clip,plip)))
+tmp <- table(c(llip,clip,plip))
+names(tmp[tmp == 2])
+```
+
+Now pull out unique `pheno` and make `analyses_molecule`.
+
+* `analyses_tbl`: `c("pheno","output","pheno_group","longname","pheno_type","model","transf","offset","winsorize",
+"sex","diet_days","Ins_per_islet","Glu_0min","Ins_0min","weight_sac","oGTT_weight",
+"DOwave2","DOwave3","DOwave4","DOwave5","Gcg_content")`
 
 ### Covariates matrix and Analyses table
+
+Strategy is to make `covar` a data frame (convert from current format as numeric matrix)
+and use `model.matrix`. We will add columns for `Batch` (note names above) and for `chrM` and `chrY`, which might be useful in the future. Also add `coat_color`. All other covariates are ignored here.
 
 Here, covariates are indicated in `liverd$covar_list` as colon-separated names, but all are `sex:generation:Batch`. 
 `Batch` is distinct (I think) for each type of molecule.
@@ -247,27 +299,39 @@ and differs for mouse `r liverz$Mouse.ID[which(!(liverz$Batch == as.numeric(str_
 
 Need to add `generation` and `Batch`, but there will be four `Batch` (at least):
 `Batch_liver_lipid`, `Batch_plasma_lipids`, `Batch_cecum_lipids`, `Batch_liver_metabolites`.
-These need to be added as columns in `analyses_tbl` (T/F) and as columns in `covar_mx`. Challenge is that these are categorical, so either need to add many columns or identify as categorical and expand later. This is what Dan did, which is a nice solution:
 
-```{r eval=FALSE}
-covar.names = strsplit(pheno.descr$covar_list, ":")
-covar.names = unique(unlist(covar.names))
-# There may be NA's in the covar.names.
-covar.names = covar.names[!is.na(covar.names)]
-stopifnot(covar.names %in% colnames(pheno))
-
-f = as.formula(paste("~", paste(covar.names, collapse = "+")))
-addcovar = model.matrix(f, data = pheno)[,-1]
+```{r}
+covar_small <- liverz %>% 
+  select(Mouse.ID,coat_color,Batch,chrM,chrY) %>%
+  mutate(Batch = as.character(Batch)) %>%
+  rename(BatchLiverLipid = Batch)
+rownames(covar_small) <- as.numeric(str_replace(covar_small$Mouse.ID, "DO-", ""))
+covar_small$Mouse.ID <- NULL
 ```
 
-Strategy is to make `covar` a data frame (convert from current format as numeric matrix)
-and use `model.matrix`. We will add columns for `Batch` (note names above) and for `chrM` and `chrY`, which might be useful in the future. Also add `coat_color`. All other covariates are ignored here.
+```{r}
+covar_small$BatchPlasmaLipid <- as.character(plasmaz$Batch)
+covar_small$BatchLiverMetab <- str_replace(metabz[matchM2, "Batch"], "Batch", "")
+tmp <- rep(NA, nrow(covar_small))
+tmp[matchC2] <- as.character(cecumz$Batch)
+covar_small$BatchCecumLipid <- tmp
+```
+
+```{r}
+saveRDS(covar_small, file.path(datapath, "molecule", "covar_small.rds"))
+```
+
+
+#### analyses_tbl info
+
+**Now need to create analyses_tbl object here.**
+**First have to get peaks**
 
 #### More detailed look at liver metab
 
 ```{r}
 library(ggplot2)
-metabn <- readRDS(file.path(datapath, "jax",
+metabn <- readRDS(file.path(datapath, "molecule",
                             "attie_liver_metabolites_zscore_uwisc_normalized.rds"))
 ```
 
