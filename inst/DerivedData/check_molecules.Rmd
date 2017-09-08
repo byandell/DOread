@@ -1,5 +1,5 @@
 ---
-title: "Small Molecules"
+title: "Check Small Molecules"
 author: "Brian S. Yandell"
 date: "8/29/2017"
 output: html_document
@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-Goal: Set up small molecules data for qtl2shiny and other uses.
+Goal: Check small molecules data for qtl2shiny and other uses.
 
 See Box folder [MS data sets for DO project](https://uwmadison.app.box.com/folder/33549545179)
 and subfolders
@@ -74,7 +74,7 @@ cecumz <- readRDS(file.path(datapath, "molecule",
 
 ```{r}
 covar <- readRDS(file.path(datapath, "covar.rds"))
-if(is.null(covar$DOwave)) {}
+if(!("DOwave" %in% colnames(covar))) {
   covar <- cbind(covar, DOwave = 1 + covar[,"DOwave2"] + 2 * covar[,"DOwave3"] +
     3 * covar[,"DOwave4"] + 4 * covar[,"DOwave5"])
 }
@@ -84,7 +84,7 @@ Check sex.
 
 ```{r}
 sexl <- liverz$sex
-names(sexl) <- as.numeric(stringr::str_replace(liverz$Mouse.ID, "DO-", ""))
+names(sexl) <- as.numeric(str_replace(liverz$Mouse.ID, "DO-", ""))
 tmp <- qtl2scan::get_common_ids(covar, sexl)
 table(covar[tmp, "sex"], sexl[tmp])
 ```
@@ -146,66 +146,7 @@ Need to get analyses info right.
 
 Need to go to CSV files to get peaks.
 
-### Phenotypes
-
-Phenotypes are in files with names like `attie_liver_lipids_zscore_normalized.rds`. That is, they are Z-scores of Jax-normalized data. These files have phenotypes prepended by covariates and some extra columns for mitochondria and chr `Y` (`chrM`, `chrY`). 
-
-Approach here is to match `Mouse.ID` and pick up phenotypes. These are large files (1Gb).
-
-### Peaks
-
-* `peaks_tbl`: `c("pheno","longname","output","pheno_group","pheno_type","chr","lod","pos")`
-
-These have names like `liver_lipids_jax_norm_qtl_summary_thresh_6.csv`.
-
-```{r}
-setup_molecule_peaks <- function(datapath, filename, groupname) {
-  read.csv(file.path(datapath, "molecule", filename),
-           stringsAsFactors = FALSE) %>%
-    rename(pheno = analyte) %>%
-    mutate(longname = pheno,
-           output = pheno,
-           pheno_type = "molecule",
-           pheno_group = groupname) %>%
-    select(pheno,longname,output,pheno_group,pheno_type,chr,lod,pos)
-}
-```
-
-```{r}
-peaks_liver_lipid <- 
-  setup_molecule_peaks(datapath,
-                       "liver_lipids_jax_norm_qtl_summary_thresh_6.csv",
-                       "liver_lipid")
-peaks_plasma_lipid <- 
-  setup_molecule_peaks(datapath,
-                       "plasma_lipids_jax_norm_qtl_summary_thresh_6.csv",
-                       "plasma_lipid")
-peaks_liver_metab <- 
-  setup_molecule_peaks(datapath,
-                       "liver_metabolites_jax_norm_qtl_summary_thresh_6.csv",
-                       "liver_metab")
-peaks_cecum_lipid <- 
-  setup_molecule_peaks(datapath,
-                       "cecum_lipids_jax_norm_qtl_summary_thresh_6.csv",
-                       "cecum_lipid")
-```
-
-Do we have to adjust names that overlap? Yes. Need to adjust here and in the `pheno` data frame.
-
-```{r}
-llip <- sort(unique(peaks_liver_lipid$pheno))
-plip <- sort(unique(peaks_plasma_lipid$pheno))
-clip <- sort(unique(peaks_cecum_lipid$pheno))
-c(liver = length(llip), plasma = length(plip), cecum = length(clip))
-table(table(c(llip,plip)))
-table(table(c(llip,clip)))
-table(table(c(clip,plip)))
-table(table(c(llip,clip,plip)))
-tmp <- table(c(llip,clip,plip))
-names(tmp[tmp == 2])
-```
-
-Now pull out unique `pheno` and make `analyses_molecule`.
+### analyses table
 
 * `analyses_tbl`: `c("pheno","output","pheno_group","longname","pheno_type","model","transf","offset","winsorize",
 "sex","diet_days","Ins_per_islet","Glu_0min","Ins_0min","weight_sac","oGTT_weight",
@@ -300,34 +241,18 @@ and differs for mouse `r liverz$Mouse.ID[which(!(liverz$Batch == as.numeric(str_
 Need to add `generation` and `Batch`, but there will be four `Batch` (at least):
 `Batch_liver_lipid`, `Batch_plasma_lipids`, `Batch_cecum_lipids`, `Batch_liver_metabolites`.
 
-```{r}
-covar_small <- liverz %>% 
-  select(Mouse.ID,coat_color,Batch,chrM,chrY) %>%
-  mutate(Batch = as.character(Batch)) %>%
-  rename(BatchLiverLipid = Batch)
-rownames(covar_small) <- as.numeric(str_replace(covar_small$Mouse.ID, "DO-", ""))
-covar_small$Mouse.ID <- NULL
-```
-
-```{r}
-covar_small$BatchPlasmaLipid <- as.character(plasmaz$Batch)
-covar_small$BatchLiverMetab <- str_replace(metabz[matchM2, "Batch"], "Batch", "")
-tmp <- rep(NA, nrow(covar_small))
-tmp[matchC2] <- as.character(cecumz$Batch)
-covar_small$BatchCecumLipid <- tmp
-```
-
-```{r}
-saveRDS(covar_small, file.path(datapath, "molecule", "covar_small.rds"))
-```
-
-
 #### analyses_tbl info
 
 **Now need to create analyses_tbl object here.**
 **First have to get peaks**
 
-#### More detailed look at liver metab
+### Phenotypes
+
+Phenotypes are in files with names like `attie_liver_lipids_zscore_normalized.rds`. That is, they are Z-scores of Jax-normalized data. These files have phenotypes prepended by covariates and some extra columns for mitochondria and chr `Y` (`chrM`, `chrY`). 
+
+Approach here is to match `Mouse.ID` and pick up phenotypes. These are large files (1Gb).
+
+## More detailed look at liver metab
 
 ```{r}
 library(ggplot2)

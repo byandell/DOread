@@ -1,0 +1,246 @@
+---
+title: "Small Molecules"
+author: "Brian S. Yandell"
+date: "8/29/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Goal: Set up small molecules data for qtl2shiny and other uses.
+
+See Box folder [MS data sets for DO project](https://uwmadison.app.box.com/folder/33549545179)
+and subfolders
+
+* RDS files for all QTLs (genome scans)
+* Gatti R scripts
+* Raw and UW normalized data files
+
+See also [Dan Gatti's AttieMetabolomics GitHub](https://github.com/dmgatti/AttieMetabolomics) and
+[Dan Gatti's FTP site](ftp://ftp.jax.org/dgatti/_for_Mark/liver/).
+
+Types of molecular measurements:
+
+* liver lipids
+* cecum lipids
+* plasma lipids
+* liver metabolites
+
+There may be others coming.
+
+Here are the relevant files:
+
+size | type | name
+---- | -------------- | ------------
+961K | mouse by trait | attie_liver_lipids_zscore_normalized.rds
+225K | mouse by trait | attie_liver_metabolites_zscore_normalized.rds
+1.2M | mouse by trait | attie_plasma_lipids_zscore_normalized.rds
+1.6M | mouse by trait | attie_cecum_lipids_zscore_normalized.rds
+176K | peaks | cecum_lipids_jax_norm_qtl_summary_thresh_6.csv
+132K | peaks | liver_lipids_jax_norm_qtl_summary_thresh_6.csv
+20K | peaks | liver_metabolites_jax_norm_qtl_summary_thresh_6.csv
+193K | peaks | plasma_lipids_jax_norm_qtl_summary_thresh_6.csv
+
+The files `*_pheno.descr.rds` are relevant only in identifying the covariates used.
+They are different from what Karl used as dictionary. 
+
+```{r message=FALSE}
+library(stringr)
+library(dplyr)
+library(tidyr)
+```
+
+```{r}
+datapath <- "~/Documents/Research/attie_alan/DO/data/DerivedData/"
+```
+
+Phenotypes follow covariates in the mouse by trait tables, and the `Mouse.ID` is `DO-nnn`, as apposed to `nn` and `nnn` in Karl's work. All fixable but will take careful examination. 
+
+Dan used `generation` as covariate, but there are errors in this column. Instead,
+I will use `DOwave`.
+
+```{r}
+liverz <- readRDS(file.path(datapath, "molecule", 
+                            "attie_liver_lipids_zscore_normalized.rds"))
+metabz <- readRDS(file.path(datapath, "molecule",
+                            "attie_liver_metabolites_zscore_normalized.rds"))
+plasmaz <- readRDS(file.path(datapath, "molecule",
+                            "attie_plasma_lipids_zscore_normalized.rds"))
+cecumz <- readRDS(file.path(datapath, "molecule",
+                            "attie_cecum_lipids_zscore_normalized.rds"))
+```
+
+## Pull out relevant phenotypes and covariates and analyses stuff.
+
+We need the following to tranform into Karl type files:
+
+* `analyses_tbl`: `c("pheno","output","pheno_group","longname","pheno_type","model","transf","offset","winsorize",
+"sex","diet_days","Ins_per_islet","Glu_0min","Ins_0min","weight_sac","oGTT_weight",
+"DOwave2","DOwave3","DOwave4","DOwave5","Gcg_content")`
+* `peaks_tbl`: `c("pheno","longname","output","pheno_group","pheno_type","chr","lod","pos")`
+* `pheno_tbl`: data frame with mouseID as rownames, pheno as colnames
+* `covar_mx`: matrix with mouseID as rownmaes, covar as colnames
+
+Need to modify `covar` from matrix to data frame (and change code in qtl2shiny), and also modify `analyses_tbl`. Need to coordinate change to data frame in particular with use of `DOwave` as covariate.
+Need to extract covariates, compare that Mouse.ID, sex, wave, chrM, chrY agree across all sets. Then need to give Batch unique names and combine.
+Need to extract phenos and put in form to be reused.
+
+### Peaks
+
+The molecules of the same type (lipids, metabolites) may overlap from one tissue to another. Therefore we prepend with name of tissue.
+
+```{r}
+setup_molecule_peaks <- function(datapath, filename, groupname, tissue) {
+  read.csv(file.path(datapath, "molecule", filename),
+           stringsAsFactors = FALSE) %>%
+    rename(pheno = analyte) %>%
+    mutate(pheno = paste(tissue, pheno, sep = "."),
+           longname = pheno,
+           output = pheno,
+           pheno_type = "molecule",
+           pheno_group = groupname) %>%
+    select(pheno,longname,output,pheno_group,pheno_type,chr,lod,pos)
+}
+```
+
+```{r}
+peaks_molecule <- bind_rows(
+  setup_molecule_peaks(datapath,
+                       "liver_lipids_jax_norm_qtl_summary_thresh_6.csv",
+                       "LiverLipid",
+                       "Liver"),
+  setup_molecule_peaks(datapath,
+                       "plasma_lipids_jax_norm_qtl_summary_thresh_6.csv",
+                       "PlasmaLipid",
+                       "Plasma"),
+  setup_molecule_peaks(datapath,
+                       "liver_metabolites_jax_norm_qtl_summary_thresh_6.csv",
+                       "LiverMetab",
+                       "Liver"),
+  setup_molecule_peaks(datapath,
+                       "cecum_lipids_jax_norm_qtl_summary_thresh_6.csv",
+                       "CecumLipid",
+                       "Cecum")) %>%
+  mutate(chr = factor(chr, c(1:19, "X")))
+```
+
+```{r}
+str(peaks_molecule)
+```
+
+```{r}
+saveRDS(peaks_molecule, file.path(datapath, "molecule", "peaks_small.rds"))
+```
+
+### Analyses
+
+```{r}
+analyses_molecule <- peaks_molecule %>%
+  distinct(pheno, output, pheno_group, longname, pheno_type) %>%
+  mutate(model = "normal",
+         transf = "identity",
+         offset = 0,
+         sex = TRUE,
+         DOwave = TRUE,
+         BatchLiverLipid = (pheno_group == "LiverLipid"),
+         BatchCecumLipid = (pheno_group == "CecumLipid"),
+         BatchLiverMetab = (pheno_group == "LiverMetab"),
+         BatchPlasmaLipid = (pheno_group == "PlasmaLipid"))
+```
+
+```{r}
+str(analyses_molecule)
+```
+
+```{r}
+saveRDS(analyses_molecule, file.path(datapath, "molecule", "analyses_small.rds"))
+```
+
+### Covariates
+
+We will add columns for `Batch` (specific to `pheno_type`) and for `chrM` and `chrY`, which might be useful in the future. Also add `coat_color`. All other covariates are ignored here.
+
+```{r}
+covar_molecule <- liverz %>% 
+  select(Mouse.ID,coat_color,Batch,chrM,chrY) %>%
+  mutate(Batch = as.character(Batch)) %>%
+  rename(BatchLiverLipid = Batch)
+covar_molecule <- left_join(
+  covar_molecule,
+  plasmaz %>% 
+    select(Mouse.ID, Batch) %>%
+    mutate(Batch = as.character(Batch)) %>%
+    rename(BatchPlasmaLipid = Batch),
+  by = "Mouse.ID")
+covar_molecule <- left_join(
+  covar_molecule,
+  metabz %>% 
+    select(Mouse.ID, Batch) %>%
+    mutate(Batch = as.character(as.numeric(str_replace(Batch, "Batch", "")))) %>%
+    rename(BatchLiverMetab = Batch),
+  by = "Mouse.ID")
+covar_molecule <- left_join(
+  covar_molecule,
+  cecumz %>% 
+    select(Mouse.ID, Batch) %>%
+    mutate(Batch = as.character(Batch)) %>%
+    rename(BatchCecumLipid = Batch),
+  by = "Mouse.ID")
+rownames(covar_molecule) <- 
+  as.numeric(str_replace(covar_molecule$Mouse.ID, "DO-", ""))
+covar_molecule$Mouse.ID <- NULL
+```
+
+```{r}
+str(covar_molecule)
+```
+
+```{r}
+saveRDS(covar_molecule, file.path(datapath, "molecule", "covar_small.rds"))
+```
+
+## Phenotypes
+
+Phenotypes are in files with names like `attie_liver_lipids_zscore_normalized.rds`. That is, they are Z-scores of Jax-normalized data. These files have phenotypes prepended by covariates and some extra columns for mitochondria and chr `Y` (`chrM`, `chrY`). 
+
+Approach here is to match `Mouse.ID` and pick up phenotypes. These are large files (1Gb).
+
+```{r}
+pheno_prepend <- function(object, tissue) {
+  object %>%
+    select(-(wave:chrY)) %>%
+    rename_at(vars(-Mouse.ID), function(x) paste(tissue, x, sep = "."))
+}
+```
+
+```{r}
+pheno_molecule <- full_join(
+  liverz %>% pheno_prepend("Liver"),
+  plasmaz %>% pheno_prepend("Plasma"),
+  by = "Mouse.ID")
+pheno_molecule <- full_join(
+  pheno_molecule,
+  metabz %>% pheno_prepend("Liver"),
+  by = "Mouse.ID")
+pheno_molecule <- full_join(
+  pheno_molecule,
+  cecumz %>% pheno_prepend("Cecum"),
+  by = "Mouse.ID")
+rownames(pheno_molecule) <- 
+  as.numeric(str_replace(pheno_molecule$Mouse.ID, "DO-", ""))
+pheno_molecule$Mouse.ID <- NULL
+```
+
+```{r}
+dim(pheno_molecule)
+```
+
+```{r}
+pheno_molecule[1:5,1:3]
+```
+
+```{r}
+saveRDS(pheno_molecule, file.path(datapath, "molecule", "pheno_small.rds"))
+```

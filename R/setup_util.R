@@ -23,10 +23,6 @@ setup_peaks <- function(datapath) {
     read_otu <- function(peaks, datapath, filename) {
       if(file.exists(file.path(datapath, "otu", filename))) {
         peaks_otu <- readRDS(file.path(datapath, "otu", filename))
-        peaks_otu <-
-          dplyr::filter(
-            peaks_otu,
-            output %in% peaks_otu$output)
         peaks <- dplyr::bind_rows(peaks,
                                   peaks_otu[, names(peaks)])
       }
@@ -38,6 +34,13 @@ setup_peaks <- function(datapath) {
     if(file.exists(file.path(datapath, "otu", "peaks_BileAcid.rds")))
       peaks <- dplyr::filter(peaks, !(pheno_type == "bile acid"))
     peaks <- read_otu(peaks, datapath, "peaks_BileAcid.rds")
+  }
+  if(dir.exists(file.path(datapath, "molecule"))) {
+    if(file.exists(file.path(datapath, "molecule", "peaks_small.rds"))) {
+      peaks_small <- readRDS(file.path(datapath, "molecule", "peaks_small.rds"))
+      peaks <- dplyr::bind_rows(peaks,
+                                peaks_small[, names(peaks)])
+    }
   }
   peaks
 }
@@ -82,14 +85,18 @@ setup_analyses <- function(peaks, datapath) {
   ## Change DOwave columns to one character column; add small molecule batches
   analyses_tbl <- dplyr::select(
     dplyr::mutate(analyses_tbl,
-                  DOwave = DOwave2 | DOwave3 | DOwave4 | DOwave5,
-                  BatchLiverLipid = FALSE,
-                  BatchCecumLipid = FALSE,
-                  BatchLiverMetab = FALSE,
-                  BatchPlasmaLipid = FALSE),
+                  DOwave = DOwave2 | DOwave3 | DOwave4 | DOwave5),
     -(DOwave2:DOwave5))
 
-  ## Add rows for small molecules here.
+  if(dir.exists(file.path(datapath, "molecule"))) {
+    if(file.exists(file.path(datapath, "molecule", "analyses_small.rds"))) {
+      ## Add rows for small molecules here.
+      analyses_molecule <- readRDS(file.path(datapath, "molecule", "analyses_small.rds"))
+      analyses_tbl <- dplyr::bind_rows(analyses_tbl, analyses_molecule)
+    }
+  }
+
+  analyses_tbl[is.na(analyses_tbl)] <- FALSE
 
   analyses_tbl
 }
@@ -103,21 +110,36 @@ setup_data <- function(analyses_tbl, peaks, datapath) {
   pheno_data <- dplyr::select(pheno_data,
                               which(names(pheno_data) %in% peaks$pheno))
 
-  ## Add Closed Reference OTUs
-  if(dir.exists(file.path(datapath, "otu"))) {
-    peaks_otu <- dplyr::filter(peaks,
-                               !(pheno_group %in% c("clin","gutMB","otu","otufam")))
-    pheno_otu <- readRDS(file.path(datapath, "otu", "pheno_OTU_CR.rds"))
+  tmpfn <- function(pheno_data, pheno_otu, peaks_otu) {
     pheno_otu <- dplyr::select(
       as.data.frame(pheno_otu),
       which(colnames(pheno_otu) %in% peaks_otu$pheno))
-    tmp <- matrix(NA, nrow(pheno_data), ncol(pheno_otu))
-    dimnames(tmp) <- list(rownames(pheno_data), colnames(pheno_otu))
-    m <- match(rownames(pheno_otu), rownames(tmp))
-    tmp[m,] <- as.matrix(pheno_otu)
-    pheno_data <- cbind(pheno_data,
-                        as.data.frame(tmp))
+    # join, but need to reestablish rownames
+    pheno_otu$id <- rownames(pheno_otu)
+    pheno_data$id <- rownames(pheno_data)
+    out <- dplyr::full_join(pheno_data, pheno_otu, by = "id")
+    rownames(out) <- out$id
+    out$id <- NULL
+    out
   }
+  ## Add Closed Reference OTUs
+  if(dir.exists(file.path(datapath, "otu"))) {
+    peaks_otu <- dplyr::filter(
+      dplyr::distinct(peaks, pheno_group, pheno),
+      !(pheno_group %in% c("clin","gutMB","otu","otufam")))
+    pheno_otu <- readRDS(file.path(datapath, "otu", "pheno_OTU_CR.rds"))
+    pheno_data <- tmpfn(pheno_data, pheno_otu, peaks_otu)
+  }
+  if(dir.exists(file.path(datapath, "molecule"))) {
+    if(file.exists(file.path(datapath, "molecule", "pheno_small.rds"))) {
+      peaks_molecule <- dplyr::filter(
+        dplyr::distinct(peaks, pheno_type, pheno),
+        pheno_type == "molecule")
+      pheno_molecule <- readRDS(file.path(datapath, "molecule", "pheno_small.rds"))
+      pheno_data <- tmpfn(pheno_data, pheno_molecule, peaks_molecule)
+    }
+  }
+
   pheno_data
 }
 
