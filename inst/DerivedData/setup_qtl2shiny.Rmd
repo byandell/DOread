@@ -24,3 +24,15 @@ pheno_data   <- DOread::setup_data(analyses_tbl, peaks, datapath)
 pheno_type   <- DOread::setup_type(analyses_tbl)
 ```
 
+Write out results
+
+```{r}
+if(!dir.exists(filtered <- file.path(datapath, "filtered")))
+  dir.create(filtered)
+saveRDS(covar, file.path(filtered, "covar.rds"))
+saveRDS(peaks, file.path(filtered, "peaks.rds"))
+saveRDS(analyses_tbl, file.path(filtered, "analyses.rds"))
+saveRDS(pheno_data, file.path(filtered, "pheno.rds"))
+saveRDS(pheno_type, file.path(filtered, "pheno_type.rds"))
+```
+
