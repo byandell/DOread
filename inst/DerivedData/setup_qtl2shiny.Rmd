@@ -24,6 +24,15 @@ pheno_data   <- DOread::setup_data(analyses_tbl, peaks, datapath)
 pheno_type   <- DOread::setup_type(analyses_tbl)
 ```
 
+Remove unknowns that have no pheno data.
+
+```{r}
+peaks <- dplyr::filter(peaks,
+                       pheno %in% names(pheno_data))
+analyses_tbl <- dplyr::filter(analyses_tbl,
+                       pheno %in% names(pheno_data))
+```
+
 Write out results
 
 ```{r}

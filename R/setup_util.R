@@ -133,8 +133,8 @@ setup_data <- function(analyses_tbl, peaks, datapath) {
   if(dir.exists(file.path(datapath, "molecule"))) {
     if(file.exists(file.path(datapath, "molecule", "pheno_small.rds"))) {
       peaks_molecule <- dplyr::filter(
-        dplyr::distinct(peaks, pheno_type, pheno),
-        pheno_type == "molecule")
+        dplyr::distinct(peaks, pheno_group, pheno),
+        pheno_group == "Molecule")
       pheno_molecule <- readRDS(file.path(datapath, "molecule", "pheno_small.rds"))
       pheno_data <- tmpfn(pheno_data, pheno_molecule, peaks_molecule)
     }

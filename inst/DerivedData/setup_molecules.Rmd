@@ -92,15 +92,15 @@ Need to extract phenos and put in form to be reused.
 The molecules of the same type (lipids, metabolites) may overlap from one tissue to another. Therefore we prepend with name of tissue.
 
 ```{r}
-setup_molecule_peaks <- function(datapath, filename, groupname, tissue) {
+setup_molecule_peaks <- function(datapath, filename, typename, tissue) {
   read.csv(file.path(datapath, "molecule", filename),
            stringsAsFactors = FALSE) %>%
     rename(pheno = analyte) %>%
     mutate(pheno = paste(tissue, pheno, sep = "."),
            longname = pheno,
            output = pheno,
-           pheno_type = "molecule",
-           pheno_group = groupname) %>%
+           pheno_type = typename,
+           pheno_group = "Molecule") %>%
     select(pheno,longname,output,pheno_group,pheno_type,chr,lod,pos)
 }
 ```
@@ -144,10 +144,10 @@ analyses_molecule <- peaks_molecule %>%
          offset = 0,
          sex = TRUE,
          DOwave = TRUE,
-         BatchLiverLipid = (pheno_group == "LiverLipid"),
-         BatchCecumLipid = (pheno_group == "CecumLipid"),
-         BatchLiverMetab = (pheno_group == "LiverMetab"),
-         BatchPlasmaLipid = (pheno_group == "PlasmaLipid"))
+         BatchLiverLipid = (pheno_type == "LiverLipid"),
+         BatchCecumLipid = (pheno_type == "CecumLipid"),
+         BatchLiverMetab = (pheno_type == "LiverMetab"),
+         BatchPlasmaLipid = (pheno_type == "PlasmaLipid"))
 ```
 
 ```{r}
