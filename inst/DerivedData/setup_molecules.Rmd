@@ -222,7 +222,10 @@ pheno_molecule <- full_join(
   by = "Mouse.ID")
 pheno_molecule <- full_join(
   pheno_molecule,
-  metabz %>% pheno_prepend("Liver"),
+  metabz %>% 
+    pheno_prepend("Liver") %>%
+    rename_at(vars(-Mouse.ID), 
+              function(x) str_replace(x, "Liver.RT", "Liver.RT_")),
   by = "Mouse.ID")
 pheno_molecule <- full_join(
   pheno_molecule,
