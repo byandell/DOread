@@ -153,8 +153,10 @@ setup_covar <- function(datapath) {
 
   # Condense DOwave into one factor.
   if(!("DOwave" %in% colnames(covar))) {
-    covar <- cbind(covar, DOwave = 1 + covar[,"DOwave2"] + 2 * covar[,"DOwave3"] +
-                     3 * covar[,"DOwave4"] + 4 * covar[,"DOwave5"])
+    covar <- cbind(covar, DOwave = factor(1 + covar[,"DOwave2"] +
+                                            2 * covar[,"DOwave3"] +
+                                            3 * covar[,"DOwave4"] +
+                                            4 * covar[,"DOwave5"]))
     covar <- covar[, -grep("DOwave[1-5]", colnames(covar))]
   }
 

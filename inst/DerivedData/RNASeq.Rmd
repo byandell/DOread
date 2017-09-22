@@ -23,7 +23,7 @@ dirpath <- file.path(datapath, "data", "DerivedData")
 ```
 
 ```{r}
-load(file.path(datapath, "rna_seq", "DO381_islet.RData"))
+load(file.path(dirpath, "RNAseq", "DO381_islet.RData"))
 ```
 
 ```{r}
