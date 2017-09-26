@@ -24,6 +24,24 @@ pheno_data   <- DOread::setup_data(analyses_tbl, peaks, datapath)
 pheno_type   <- DOread::setup_type(analyses_tbl)
 ```
 
+### Rename groups
+
+```{r}
+group_rename <- function(x) {
+  x[x == "BileAcid"] <- "Molecule"
+  x[x %in% c("otu","otufam")] <- "OldOTU"
+  x[x %in% c("gutMB","OTU_Module")] <- "OTU_Closed_Ref"
+  x[x == "clin"] <- "Clinical"
+  x
+}
+peaks <- 
+  dplyr::mutate(peaks, 
+                pheno_group = group_rename(pheno_group))
+analyses_tbl <- 
+  dplyr::mutate(analyses_tbl, 
+                pheno_group = group_rename(pheno_group))
+```
+
 ### Reduce to peaks and analyses that match phenotypes
 
 Remove unknowns that have no pheno data.
