@@ -24,6 +24,9 @@
 read_mrna <- function(chr_id=NULL, start_val=NULL, end_val=NULL, datapath,
                       local = TRUE, qtl = FALSE) {
 
+  if(is.null(chr_id) || is.null(start_val) || is.null(end_val))
+    stop("must supply chr_id, start_val and end_val")
+
   start_val6 <- 1e6 * start_val
   end_val6 <- 1e6 * end_val
 

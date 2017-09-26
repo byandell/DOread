@@ -42,7 +42,7 @@ setup_peaks <- function(datapath) {
                                 peaks_small[, names(peaks)])
     }
   }
-  peaks
+  rename_groups(peaks)
 }
 
 #' @export
@@ -98,14 +98,14 @@ setup_analyses <- function(peaks, datapath) {
 
   analyses_tbl[is.na(analyses_tbl)] <- FALSE
 
-  analyses_tbl
+  rename_groups(analyses_tbl)
 }
 
 #' @export
 setup_data <- function(analyses_tbl, peaks, datapath) {
   ## Want to filter to "best" analysis based -- anal1 or anal2
   analyses_std <- dplyr::filter(analyses_tbl,
-                                pheno_group %in% c("clin","gutMB","otu","otufam"))
+                                phenoGroup %in% c("Clinical","OldOTU"))
   pheno_data <- read_pheno_tbl(analyses_std, datapath)
   pheno_data <- dplyr::select(pheno_data,
                               which(names(pheno_data) %in% peaks$pheno))
@@ -179,5 +179,18 @@ setup_covar <- function(datapath) {
 #' @export
 setup_type <- function(analyses_tbl) {
   c("all", sort(unique(analyses_tbl$pheno_type)))
+}
+
+group_rename <- function(x) {
+  x[x == "BileAcid"] <- "Molecule"
+  x[x %in% c("otu","otufam")] <- "OldOTU"
+  x[x %in% c("gutMB","OTU_Module")] <- "OTU_Closed_Ref"
+  x[x == "clin"] <- "Clinical"
+  x
+}
+rename_groups <- function(object) {
+  dplyr::mutate(
+    object,
+    phenoGroup = group_rename(pheno_group))
 }
 
