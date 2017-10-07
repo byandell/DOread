@@ -22,7 +22,8 @@ setup_peaks <- function(datapath) {
   peaks <- dplyr::mutate(peaks, chr = factor(chr, c(1:19,"X")))
 
   ## Add in newer peaks.
-  peaks <- setup_peaks_otu(peaks, datapath)
+  peaks <- setup_peaks_otucr(peaks, datapath)
+  peaks <- setup_peaks_bileacid(peaks, datapath)
   peaks <- setup_peaks_molecules(peaks, datapath)
   peaks <- setup_peaks_mrna(peaks, datapath)
 
@@ -34,8 +35,9 @@ setup_analyses <- function(peaks, datapath) {
   analyses_tbl <- dplyr::filter(readRDS(file.path(datapath, "analyses.rds")),
                                 output %in% peaks$output)
 
-  ## Add OTU analyses.
-  analyses_tbl <- setup_analyses_otu(analyses_tbl, peaks, datapath)
+  ## Add OTU_CR and BileAcid analyses. These have DOwaven columns.
+  analyses_tbl <- setup_analyses_otucr(analyses_tbl, peaks, datapath)
+  analyses_tbl <- setup_analyses_bileacid(analyses_tbl, peaks, datapath)
 
   ## Change DOwave columns to one character column; add small molecule batches
   analyses_tbl <- dplyr::select(
@@ -58,25 +60,26 @@ setup_analyses <- function(peaks, datapath) {
 setup_data <- function(analyses_tbl, peaks, datapath) {
   ## Want to filter to "best" analysis based -- anal1 or anal2
   analyses_std <- dplyr::filter(analyses_tbl,
-                                pheno_group %in% c("clin","otu","otufam"))
+                                pheno_group %in% c("clin","otu","otufam","gutMB"))
   pheno_data <- read_pheno_tbl(analyses_std, datapath)
   pheno_data <- dplyr::select(pheno_data,
                               which(names(pheno_data) %in% peaks$pheno))
 
-  pheno_data <- setup_data_otu(pheno_data, peaks, datapath)
+  pheno_data <- setup_data_otucr(pheno_data, peaks, datapath)
+  pheno_data <- setup_data_bileacid(pheno_data, peaks, datapath)
   pheno_data <- setup_data_molecules(pheno_data, peaks, datapath)
   pheno_data <- setup_data_mrna(pheno_data, peaks, datapath)
 
   pheno_data
 }
-setup_data_append <- function(pheno_data, pheno_otu, peaks_otu) {
-  pheno_otu <- dplyr::select(
-    as.data.frame(pheno_otu),
-    which(colnames(pheno_otu) %in% peaks_otu$pheno))
+setup_data_append <- function(pheno_data, pheno_new, peaks_new) {
+  pheno_new <- dplyr::select(
+    as.data.frame(pheno_new),
+    which(colnames(pheno_new) %in% peaks_new$pheno))
   # join, but need to reestablish rownames
-  pheno_otu$id <- rownames(pheno_otu)
+  pheno_new$id <- rownames(pheno_new)
   pheno_data$id <- rownames(pheno_data)
-  out <- dplyr::full_join(pheno_data, pheno_otu, by = "id")
+  out <- dplyr::full_join(pheno_data, pheno_new, by = "id")
   rownames(out) <- out$id
   out$id <- NULL
   out

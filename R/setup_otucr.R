@@ -1,12 +1,8 @@
-setup_peaks_otu <- function(peaks, datapath) {
+setup_peaks_otucr <- function(peaks, datapath) {
   if(dir.exists(datapath <- file.path(datapath, "otu"))) {
     ## Add Closed Reference OTUs, OTU Modules, and Bile Acids
     peaks <- read_otu(peaks, datapath, "peaks_OTU_CR.rds")
     peaks <- read_otu(peaks, datapath, "peaks_OTU_Module.rds")
-    ## Replace bile acid with new BileAcid
-    if(file.exists(file.path(datapath, "peaks_BileAcid.rds")))
-      peaks <- dplyr::filter(peaks, !(pheno_type == "bile acid"))
-    peaks <- read_otu(peaks, datapath, "peaks_BileAcid.rds")
   }
   peaks
 }
@@ -19,18 +15,13 @@ read_otu <- function(peaks, datapath, filename) {
   peaks
 }
 
-setup_analyses_otu <- function(analyses_tbl, peaks, datapath) {
+setup_analyses_otucr <- function(analyses_tbl, peaks, datapath) {
   if(dir.exists(datapath <- file.path(datapath, "otu"))) {
     ## Add Closed Reference OTUs, OTU Modules, and Bile Acids
     analyses_tbl <- read_otua(analyses_tbl, peaks,
                               datapath, "analyses_OTU_CR.rds")
     analyses_tbl <- read_otua(analyses_tbl, peaks,
                               datapath, "analyses_OTU_Module.rds")
-    ## Replace bile acid with new BileAcid
-    analyses_tbl <- dplyr::filter(analyses_tbl,
-                                  !(pheno_type == "bile acid"))
-    analyses_tbl <- read_otua(analyses_tbl, peaks,
-                              datapath, "analyses_BileAcid.rds")
 
     # Add model column to analyses_tbl
     analyses_tbl <-
@@ -59,12 +50,14 @@ read_otua <- function(analyses_tbl, peaks, datapath, filename) {
   analyses_tbl
 }
 
-setup_data_otu <- function(pheno_data, peaks, datapath) {
+setup_data_otucr <- function(pheno_data, peaks, datapath) {
   if(dir.exists(datapath <- file.path(datapath, "otu"))) {
     peaks_new <- dplyr::filter(
       dplyr::distinct(peaks, pheno_group, pheno),
-      !(pheno_group %in% c("clin","gutMB","otu","otufam")))
+      pheno_group %in% c("OTU_Closed_Ref", "OTU_Module"))
     pheno_new <- readRDS(file.path(datapath, "pheno_OTU_CR.rds"))
+    pheno_data <- setup_data_append(pheno_data, pheno_new, peaks_new)
+    pheno_new <- readRDS(file.path(datapath, "pheno_OTU_Module.rds"))
     pheno_data <- setup_data_append(pheno_data, pheno_new, peaks_new)
   }
   pheno_data

@@ -48,7 +48,7 @@ Remove unknowns that have no pheno data.
 
 ```{r}
 nopeaks <- dplyr::filter(peaks,
-                         !(make.names(pheno) %in% make.names(names(pheno_data))))
+                         !(pheno %in% names(pheno_data)))
 nopheno <- dplyr::distinct(nopeaks, pheno)$pheno
 ```
 
@@ -57,15 +57,7 @@ table(stringr::str_sub(nopheno,1,2))
 ```
 
 ```{r}
-table(stringr::str_sub(nopheno[grep("Liver", nopheno)],7,10))
-```
-
-```{r}
-table(stringr::str_sub(nopheno[grep("Plasma", nopheno)],8,11))
-```
-
-```{r}
-table(stringr::str_sub(nopheno[grep("ME", nopheno)],3))
+table(stringr::str_sub(nopheno[grep("Liver|Plasma", nopheno)],7,10))
 ```
 
 Note that following step is problematic. See examples above.
