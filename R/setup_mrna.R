@@ -61,7 +61,11 @@ setup_data_mrna <- function(pheno_data, peaks, datapath) {
                            as.integer(stringr::str_replace(pheno, "ENSMUSG", "")),
                            sep = "."))
       if(file.exists(filename <- file.path(datapath, "expr.mrna.feather"))) {
-        pheno_new <- feather::read_feather(filename)
+        pheno_new <- data.frame(
+          feather::read_feather(filename),
+          check.names = FALSE)
+        rownames(pheno_new) <- pheno_new$Mouse.ID
+        pheno_new$Mouse.ID <- NULL
         pheno_data <- setup_data_append(pheno_data, pheno_new, peaks_new)
         # Now put names we want for mrna
         m <- match(peaks_new$pheno, colnames(pheno_data))

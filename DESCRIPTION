@@ -1,7 +1,7 @@
 Package: DOread
 Type: Package
 Title: Read DO data
-Version: 0.4.1
+Version: 0.4.2
 Data: 2017-10-07
 Author: Brian S. Yandell
 Maintainer: Brian S. Yandell <byandell@wisc.edu>
