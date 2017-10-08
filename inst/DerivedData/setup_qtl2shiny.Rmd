@@ -57,14 +57,42 @@ table(stringr::str_sub(nopheno,1,2))
 ```
 
 ```{r}
-table(stringr::str_sub(nopheno[grep("Liver|Plasma", nopheno)],7,10))
+table(stringr::str_sub(nopheno[grep("Liver|Plasma", nopheno)],1,10))
 ```
 
-Note that following step is problematic. See examples above.
+Note that following step is problematic if any peaks have no pheno data. See examples above.
+
+
+### Covariates used
+
+```{r}
+dplyr::select(
+  dplyr::filter(
+    tidyr::spread(
+      dplyr::mutate(
+        dplyr::bind_rows(
+          purrr::map(
+            as.list(
+              dplyr::select(analyses_tbl, -(pheno:winsorize))),
+            function(x, gp) {
+                out <- dplyr::mutate(
+                  data.frame(table(gp, x)),
+                  gp = as.character(gp),
+                  x = as.character(x))
+            },
+            analyses_tbl$pheno_group),
+          .id = "covar"),
+        covar = factor(covar, unique(covar))),
+      gp, Freq),
+    x == "TRUE"),
+  -x)
+```
+
+### Filter peaks and analyses
 
 ```{r}
 peaks <- dplyr::filter(peaks,
-                       make.names(pheno) %in% make.names(names(pheno_data)))
+                       pheno %in% names(pheno_data))
 analyses_tbl <- dplyr::filter(analyses_tbl,
                        pheno %in% names(pheno_data))
 ```

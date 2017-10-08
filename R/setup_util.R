@@ -6,20 +6,8 @@
 #'                   mutate mutate_if select summarize ungroup
 setup_peaks <- function(datapath) {
 
-  ## Filter peaks and analyses_tbl to "best" analysis (first encountered in table).
-  peaks <- readRDS(file.path(datapath, "peaks.rds"))
-
-  peak_info <- dplyr::ungroup(
-    dplyr::summarize(
-      dplyr::arrange(
-        dplyr::distinct(
-          dplyr::group_by(peaks, pheno),
-          output),
-        dplyr::desc(output)),
-      output = output[1]))$output
-
-  peaks <- dplyr::filter(peaks, output %in% peak_info)
-  peaks <- dplyr::mutate(peaks, chr = factor(chr, c(1:19,"X")))
+  ## Set up initial wave5 peaks.
+  peaks <- setup_peaks_wave5(datapath)
 
   ## Add in newer peaks.
   peaks <- setup_peaks_otucr(peaks, datapath)
@@ -32,8 +20,9 @@ setup_peaks <- function(datapath) {
 
 #' @export
 setup_analyses <- function(peaks, datapath) {
-  analyses_tbl <- dplyr::filter(readRDS(file.path(datapath, "analyses.rds")),
-                                output %in% peaks$output)
+
+  ## Set up initial wave5 analyses.
+  analyses_tbl <- setup_analyses_wave5(peaks, datapath)
 
   ## Add OTU_CR and BileAcid analyses. These have DOwaven columns.
   analyses_tbl <- setup_analyses_otucr(analyses_tbl, peaks, datapath)
@@ -58,13 +47,11 @@ setup_analyses <- function(peaks, datapath) {
 
 #' @export
 setup_data <- function(analyses_tbl, peaks, datapath) {
-  ## Want to filter to "best" analysis based -- anal1 or anal2
-  analyses_std <- dplyr::filter(analyses_tbl,
-                                pheno_group %in% c("clin","otu","otufam","gutMB"))
-  pheno_data <- read_pheno_tbl(analyses_std, datapath)
-  pheno_data <- dplyr::select(pheno_data,
-                              which(names(pheno_data) %in% peaks$pheno))
 
+  ## Set up initial wave5 phenotype data.
+  pheno_data <- setup_data_wave5(analyses_tbl, peaks, datapath)
+
+  ## Add other phentoype data.
   pheno_data <- setup_data_otucr(pheno_data, peaks, datapath)
   pheno_data <- setup_data_bileacid(pheno_data, peaks, datapath)
   pheno_data <- setup_data_molecules(pheno_data, peaks, datapath)
@@ -72,6 +59,7 @@ setup_data <- function(analyses_tbl, peaks, datapath) {
 
   pheno_data
 }
+
 setup_data_append <- function(pheno_data, pheno_new, peaks_new) {
   pheno_new <- dplyr::select(
     as.data.frame(pheno_new),
@@ -87,8 +75,9 @@ setup_data_append <- function(pheno_data, pheno_new, peaks_new) {
 
 #' @export
 setup_covar <- function(datapath) {
-  # Read covar matrix prepared by Karl Broman.
-  covar <- readRDS(file.path(datapath, "covar.rds"))
+
+  ## Set up initial wave5 covariates.
+  covar <- setup_covar_wave5(datapath)
 
   # Convert to data frame.
   covar <- as.data.frame(covar)
