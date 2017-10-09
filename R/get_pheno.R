@@ -20,9 +20,10 @@
 #' @importFrom stats quantile
 #'
 get_pheno <- function(phe, analyses_tbl, transform = TRUE) {
-  phename <- unique(analyses_tbl$pheno)
+  # Get phenotype names. Make sure it is character, not factor.
+  phename <- as.character(unique(analyses_tbl$pheno))
   #  indID <- unlist(phe[,1]) ## IDs assumed to be first trait.
-  phe <- phe[, match(phename, names(phe), nomatch=0), drop=FALSE]
+  phe <- phe[, match(phename, colnames(phe), nomatch=0), drop=FALSE]
   #  rownames(phe) <- indID
 
   if(transform) {
