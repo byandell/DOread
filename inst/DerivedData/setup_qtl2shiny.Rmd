@@ -88,6 +88,12 @@ dplyr::select(
   -x)
 ```
 
+### Phenotype groups
+
+```{r}
+dplyr::count(analyses_tbl, pheno_group)
+```
+
 ### Filter peaks and analyses
 
 ```{r}

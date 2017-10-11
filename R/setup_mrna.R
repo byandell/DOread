@@ -1,18 +1,17 @@
 setup_peaks_mrna <- function(peaks, datapath) {
-  if(dir.exists(tmp <- file.path(datapath, "RNAseq"))) {
-    if(file.exists(tmp <- file.path(tmp, "peaks.mrna.feather"))) {
+  tissue <- "Islet"
+  if(dir.exists(datapath <- file.path(datapath, "RNAseq"))) {
+    if(file.exists(filename <- file.path(datapath, "peaks.mrna.feather"))) {
       chrs <- levels(peaks$chr)
       peaks_new <- dplyr::select(
         dplyr::mutate(
           dplyr::rename(
-            feather::read_feather(tmp),
+            feather::read_feather(filename),
             chr = qtl_chr,
             pos = qtl_pos),
           chr = factor(chr, chrs),
           pos = pos * 1e-6,
-          pheno = paste(gene_symbol,
-                        as.integer(stringr::str_replace(gene_id, "ENSMUSG", "")),
-                        sep = "."),
+          pheno = pheno_tissue(tissue, gene_symbol, gene_id),
           longname = pheno,
           output = pheno,
           pheno_group = "Islet.mRNA",
@@ -21,16 +20,45 @@ setup_peaks_mrna <- function(peaks, datapath) {
       peaks <- dplyr::bind_rows(peaks,
                                 peaks_new[, names(peaks)])
     }
+    peaks <- setup_peaks_mrna_module(peaks, datapath)
   }
   peaks
 }
+setup_peaks_mrna_module <- function(peaks, datapath) {
+  tissue <- "Islet"
+  if(file.exists(filename <- file.path(datapath, "peaks_me.csv"))) {
+    chrs <- levels(peaks$chr)
+    peaks_new <- dplyr::select(
+      dplyr::mutate(
+        read.csv(filename),
+        chr = factor(chr, chrs),
+        pheno = pheno_tissue(tissue, lodcolumn),
+        longname = pheno,
+        output = pheno,
+        pheno_group = "Islet.mRNA",
+        pheno_type = "Islet.mRNA.Module"),
+      pheno,longname,output,pheno_group,pheno_type,chr,lod,pos)
+    peaks <- dplyr::bind_rows(peaks,
+                              peaks_new[, names(peaks)])
+  }
+  peaks
+}
+pheno_tissue <- function(tissue, pheno, id = NULL) {
+  pheno <- paste(tissue, pheno, sep = ".")
+  if(!is.null(id))
+    pheno <- paste(pheno,
+                   as.integer(stringr::str_replace(id, "ENSMUSG", "")),
+                   sep = ".")
+  pheno
+}
+
 setup_analyses_mrna <- function(analyses_tbl, peaks, datapath) {
-  peaks_mrna <- dplyr::distinct(
+  peaks_new <- dplyr::distinct(
     dplyr::filter(peaks,
                   pheno_group == "Islet.mRNA"),
     pheno,output,pheno_group,longname,pheno_type)
 
-  analyses_mrna <- data.frame(pheno_group = "Islet.mRNA",
+  analyses_new <- data.frame(pheno_group = "Islet.mRNA",
                               model = "normal",
                               transf = "identity",
                               offset = 0,
@@ -39,28 +67,30 @@ setup_analyses_mrna <- function(analyses_tbl, peaks, datapath) {
                               DOwave = TRUE,
                               diet_days = TRUE,
                               stringsAsFactors = FALSE)
-  analyses_mrna <- inner_join(peaks_mrna,
-                              analyses_mrna, by = "pheno_group")
+  analyses_new <- inner_join(peaks_new,
+                             analyses_new, by = "pheno_group")
 
   analyses_tbl <- dplyr::bind_rows(analyses_tbl,
-                                   analyses_mrna)
+                                   analyses_new)
 
   analyses_tbl
 }
 
 setup_data_mrna <- function(pheno_data, peaks, datapath) {
+  tissue <- "Islet"
   if(dir.exists(datapath <- file.path(datapath, "RNAseq"))) {
     if(file.exists(filename <- file.path(datapath, "peaks.mrna.feather"))) {
+      # Read peaks again but keep original pheno and new name as pheno_rename.
       peaks_new <- dplyr::mutate(
         dplyr::rename(
           dplyr::distinct(
             feather::read_feather(filename),
             gene_id, gene_symbol),
           pheno = gene_id),
-        pheno_gene = paste(gene_symbol,
-                           as.integer(stringr::str_replace(pheno, "ENSMUSG", "")),
-                           sep = "."))
+        pheno_rename = pheno_tissue(tissue, gene_symbol, pheno))
+
       if(file.exists(filename <- file.path(datapath, "expr.mrna.feather"))) {
+        # Read phenotypes; append; change names from pheno to pheno_rename.
         pheno_new <- data.frame(
           feather::read_feather(filename),
           check.names = FALSE)
@@ -69,8 +99,33 @@ setup_data_mrna <- function(pheno_data, peaks, datapath) {
         pheno_data <- setup_data_append(pheno_data, pheno_new, peaks_new)
         # Now put names we want for mrna
         m <- match(peaks_new$pheno, colnames(pheno_data))
-        colnames(pheno_data)[m] <- peaks_new$pheno_gene
+        colnames(pheno_data)[m] <- peaks_new$pheno_rename
       }
+    }
+    peaks <- setup_data_mrna_module(pheno_data, peaks, datapath)
+  }
+  peaks
+}
+setup_data_mrna_module <- function(pheno_data, peaks, datapath) {
+  tissue <- "Islet"
+  if(file.exists(filename <- file.path(datapath, "peaks_me.csv"))) {
+    peaks_new <- dplyr::mutate(
+      dplyr::rename(
+        dplyr::distinct(
+          read.csv(filename),
+          lodcolumn),
+        pheno = lodcolumn),
+      pheno_rename = pheno_tissue(tissue, pheno))
+
+    if(file.exists(filename <- file.path(datapath, "ME.mrna.csv"))) {
+      pheno_new <- dplyr::select(
+        read.csv(filename, row.names = 1),
+        -MEgrey)
+      rownames(pheno_new) <- as.integer(stringr::str_replace(rownames(pheno_new), "DO-", ""))
+      pheno_data <- setup_data_append(pheno_data, pheno_new, peaks_new)
+      # Now put names we want for mrna
+      m <- match(peaks_new$pheno, colnames(pheno_data))
+      colnames(pheno_data)[m] <- peaks_new$pheno_rename
     }
   }
   pheno_data
