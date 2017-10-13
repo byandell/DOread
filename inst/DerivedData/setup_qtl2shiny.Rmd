@@ -103,6 +103,13 @@ analyses_tbl <- dplyr::filter(analyses_tbl,
                        pheno %in% names(pheno_data))
 ```
 
+### Hotspots
+
+```{r}
+pmap <- readRDS(file.path(datapath, "pmap.rds"))
+hots <- DOread::hotspot(pmap, peaks)
+```
+
 ### Write out results
 
 ```{r}
@@ -113,5 +120,6 @@ saveRDS(peaks, file.path(filtered, "peaks.rds"))
 saveRDS(analyses_tbl, file.path(filtered, "analyses.rds"))
 saveRDS(pheno_data, file.path(filtered, "pheno.rds"))
 saveRDS(pheno_type, file.path(filtered, "pheno_type.rds"))
+saveRDS(hots, file.path(filtered, "hotspot.rds"))
 ```
 
