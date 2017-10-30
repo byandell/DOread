@@ -21,12 +21,18 @@ setup_peaks_mrna <- function(peaks, datapath) {
                                 peaks_new[, names(peaks)])
     }
     peaks <- setup_peaks_mrna_module(peaks, datapath)
+    peaks <- dplyr::filter(peaks,
+                           pheno != "Islet.MEgrey")
+    peaks <- setup_peaks_mrna_module(peaks, datapath,
+                                      "peaks_pc.csv", "Hotspot")
   }
   peaks
 }
-setup_peaks_mrna_module <- function(peaks, datapath) {
+setup_peaks_mrna_module <- function(peaks, datapath,
+                                    filename = "peaks_me.csv",
+                                    type = "Module") {
   tissue <- "Islet"
-  if(file.exists(filename <- file.path(datapath, "peaks_me.csv"))) {
+  if(file.exists(filename <- file.path(datapath, filename))) {
     chrs <- levels(peaks$chr)
     peaks_new <- dplyr::select(
       dplyr::mutate(
@@ -36,7 +42,7 @@ setup_peaks_mrna_module <- function(peaks, datapath) {
         longname = pheno,
         output = pheno,
         pheno_group = "Islet.mRNA",
-        pheno_type = "Islet.mRNA.Module"),
+        pheno_type = paste0("Islet.mRNA.", type)),
       pheno,longname,output,pheno_group,pheno_type,chr,lod,pos)
     peaks <- dplyr::bind_rows(peaks,
                               peaks_new[, names(peaks)])
@@ -102,13 +108,17 @@ setup_data_mrna <- function(pheno_data, peaks, datapath) {
         colnames(pheno_data)[m] <- peaks_new$pheno_rename
       }
     }
-    peaks <- setup_data_mrna_module(pheno_data, peaks, datapath)
+    pheno_data <- setup_data_mrna_module(pheno_data, peaks, datapath)
+    pheno_data <- setup_data_mrna_module(pheno_data, peaks, datapath,
+                                         "peaks_pc.csv", "pheno_pc.csv")
   }
-  peaks
+  pheno_data
 }
-setup_data_mrna_module <- function(pheno_data, peaks, datapath) {
+setup_data_mrna_module <- function(pheno_data, peaks, datapath,
+                                   peakname = "peaks_me.csv",
+                                   dataname = "ME.mrna.csv") {
   tissue <- "Islet"
-  if(file.exists(filename <- file.path(datapath, "peaks_me.csv"))) {
+  if(file.exists(filename <- file.path(datapath, peakname))) {
     peaks_new <- dplyr::mutate(
       dplyr::rename(
         dplyr::distinct(
@@ -117,10 +127,8 @@ setup_data_mrna_module <- function(pheno_data, peaks, datapath) {
         pheno = lodcolumn),
       pheno_rename = pheno_tissue(tissue, pheno))
 
-    if(file.exists(filename <- file.path(datapath, "ME.mrna.csv"))) {
-      pheno_new <- dplyr::select(
-        read.csv(filename, row.names = 1),
-        -MEgrey)
+    if(file.exists(filename <- file.path(datapath, dataname))) {
+      pheno_new <- read.csv(filename, row.names = 1)
       rownames(pheno_new) <- as.integer(stringr::str_replace(rownames(pheno_new), "DO-", ""))
       pheno_data <- setup_data_append(pheno_data, pheno_new, peaks_new)
       # Now put names we want for mrna

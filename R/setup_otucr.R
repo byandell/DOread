@@ -18,6 +18,10 @@ setup_peaks_otucr_module <- function(peaks, datapath) {
       longname = pheno,
       output = pheno,
       pheno_group = "OTU_Closed_Ref") # Change group from OTU_Module
+    # Drop grey module.
+    peaks_new <- dplyr::filter(
+      peaks_new,
+      pheno != "OTU.MEgrey")
 
     peaks <- dplyr::bind_rows(peaks,
                               peaks_new[, names(peaks)])
