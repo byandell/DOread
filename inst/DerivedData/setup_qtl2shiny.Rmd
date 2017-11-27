@@ -107,7 +107,7 @@ analyses_tbl <- dplyr::filter(analyses_tbl,
 
 ```{r}
 pmap <- readRDS(file.path(datapath, "pmap.rds"))
-hots <- DOread::hotspot(pmap, peaks)
+hots <- qtl2shiny::hotspot(pmap, peaks)
 ```
 
 ### Write out results
