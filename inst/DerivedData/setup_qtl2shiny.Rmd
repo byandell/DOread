@@ -107,18 +107,18 @@ analyses_tbl <- dplyr::filter(analyses_tbl,
 
 ```{r}
 pmap <- readRDS(file.path(datapath, "pmap.rds"))
-hots <- qtl2shiny::hotspot(pmap, peaks)
+hots <- qtl2pattern::hotspot(pmap, peaks)
 ```
 
 ### Write out results
 
 ```{r}
-if(!dir.exists(filtered <- file.path(datapath, "filtered")))
+if(!dir.exists(filtered <- file.path(dirpath, "qtl2shinyData", "AttieDO")))
   dir.create(filtered)
 saveRDS(covar, file.path(filtered, "covar.rds"))
 saveRDS(peaks, file.path(filtered, "peaks.rds"))
 saveRDS(analyses_tbl, file.path(filtered, "analyses.rds"))
-saveRDS(pheno_data, file.path(filtered, "pheno.rds"))
+saveRDS(pheno_data, file.path(filtered, "pheno_data.rds"))
 saveRDS(pheno_type, file.path(filtered, "pheno_type.rds"))
 saveRDS(hots, file.path(filtered, "hotspot.rds"))
 ```
