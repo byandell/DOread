@@ -10,7 +10,7 @@ read_probs_feather <- function(chr, datapath, allele = TRUE) {
   oldpath <- pr$feather
   pr$feather <-
     stringr::str_replace(oldpath,
-                         file.path(".*", "feather", basename(oldpath)),
+                         file.path(".*feather", basename(oldpath)),
                          file.path(datapath, "feather", basename(oldpath)))
   probs <- modify_object(probs, pr)
   subset(probs, chr = chr)
