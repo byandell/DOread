@@ -50,6 +50,8 @@ read_probs <- function(chr=NULL, start_val=NULL, end_val=NULL, datapath,
       ## Reduce to region of interest.
       wh <- which(map[[chr]] >= start_val &
                     map[[chr]] <= end_val)
+      if(!length(wh))
+        return(NULL)
       map[[chr]] <- map[[chr]][wh]
 
       switch(method,
