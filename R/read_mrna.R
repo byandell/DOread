@@ -88,7 +88,8 @@ read_mrna <- function(chr_id=NULL, start_val=NULL, end_val=NULL, datapath,
       local = !is.na(qtl_pos) &
         chr == chr_id &
         pmax(start,end) >= start_val &
-        pmin(start,end) <= end_val)
+        pmin(start,end) <= end_val,
+      covar = "sex,DOwave")
 
   if(qtl) {
     annot.mrna <- dplyr::filter(annot.mrna, !is.na(qtl_pos))
