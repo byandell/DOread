@@ -10,8 +10,7 @@ setup_peaks_mrna <- function(peaks, datapath) {
             chr = qtl_chr,
             pos = qtl_pos),
           chr = factor(chr, chrs),
-          pos = pos * 1e-6,
-          pheno = pheno_tissue(tissue, gene_symbol, gene_id),
+          pheno = pheno_tissue(tissue, symbol, gene_id),
           longname = pheno,
           output = pheno,
           pheno_group = "Islet.mRNA",
@@ -91,9 +90,9 @@ setup_data_mrna <- function(pheno_data, peaks, datapath) {
         dplyr::rename(
           dplyr::distinct(
             feather::read_feather(filename),
-            gene_id, gene_symbol),
+            gene_id, symbol),
           pheno = gene_id),
-        pheno_rename = pheno_tissue(tissue, gene_symbol, pheno))
+        pheno_rename = pheno_tissue(tissue, symbol, pheno))
 
       if(file.exists(filename <- file.path(datapath, "expr.mrna.feather"))) {
         # Read phenotypes; append; change names from pheno to pheno_rename.

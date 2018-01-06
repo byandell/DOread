@@ -27,42 +27,30 @@ read_mrna <- function(chr_id=NULL, start_val=NULL, end_val=NULL, datapath,
   if(is.null(chr_id) || is.null(start_val) || is.null(end_val))
     stop("must supply chr_id, start_val and end_val")
 
-  start_val6 <- 1e6 * start_val
-  end_val6 <- 1e6 * end_val
-
   # Identify mRNA located in region or with QTL peak in region.
   peaks.mrna <- feather::read_feather(file.path(datapath, "RNAseq", "peaks.mrna.feather"))
   if(local) {
     peaks.mrna <- dplyr::filter(peaks.mrna,
                                 gene_chr == chr_id,
-                                pmax(gene_start, gene_end) >= start_val6,
-                                pmin(gene_start, gene_end) <= end_val6)
+                                pmax(gene_start, gene_end) >= start_val,
+                                pmin(gene_start, gene_end) <= end_val)
   } else {
     peaks.mrna <- dplyr::filter(peaks.mrna,
                                 ((gene_chr == chr_id &
-                                    pmax(gene_start, gene_end) >= start_val6 &
-                                    pmin(gene_start, gene_end) <= end_val6) |
+                                    pmax(gene_start, gene_end) >= start_val &
+                                    pmin(gene_start, gene_end) <= end_val) |
                                    (qtl_chr == chr_id &
-                                      qtl_pos >= start_val6 &
-                                      qtl_pos <= end_val6)))
+                                      qtl_pos >= start_val &
+                                      qtl_pos <= end_val)))
   }
-  peaks.mrna <- dplyr::mutate(peaks.mrna,
-                              gene_start = 1e-6 * gene_start,
-                              gene_end = 1e-6 * gene_end,
-                              qtl_pos = 1e-6 * qtl_pos)
-
   mrna_ids <- unique(peaks.mrna$gene_id)
 
   # Get annotations for unique mRNA IDs
   annot.mrna <-
     dplyr::rename(
-      dplyr::mutate(
-        dplyr::filter(
-          readRDS(file.path(datapath, "RNAseq", "annot.mrna.rds")),
-          id %in% mrna_ids),
-        start = start * 1e-6,
-        end = end * 1e-6,
-        middle_point = middle_point * 1e-6),
+      dplyr::filter(
+        readRDS(file.path(datapath, "RNAseq", "annot.mrna.rds")),
+        id %in% mrna_ids),
       pos = middle_point)
 
   annot.mrna <-
@@ -99,12 +87,16 @@ read_mrna <- function(chr_id=NULL, start_val=NULL, end_val=NULL, datapath,
   } else {
     expr_id <- annot.mrna$id
   }
-
+  if(nrow(annot.mrna) == 0 || nrow(peaks.mrna) == 0)
+    return(NULL)
 
   # Get expression data.
   expr.mrna <- as.data.frame(feather::read_feather(file.path(datapath, "RNAseq", "expr.mrna.feather"),
                                      c("Mouse.ID", expr_id)))
+  if(nrow(expr.mrna) == 0)
+    return(NULL)
+
   rownames(expr.mrna) <- expr.mrna$Mouse.ID
 
-  list(expr = expr.mrna[,-1], annot = annot.mrna, peaks = peaks.mrna)
+  list(expr = expr.mrna[,-1, drop = FALSE], annot = annot.mrna, peaks = peaks.mrna)
 }

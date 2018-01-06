@@ -14,6 +14,7 @@ suppressPackageStartupMessages({
   library(DOread)
   library(feather)
   library(readxl)
+  library(dplyr)
 })
 ```
 
@@ -23,7 +24,28 @@ dirpath <- file.path(datapath, "data", "DerivedData")
 ```
 
 ```{r}
-load(file.path(dirpath, "RNAseq", "DO381_islet.RData"))
+if(!dir.exists(file.path(dirpath, "RNAseq")))
+  dir.create(file.path(dirpath, "RNAseq"))
+```
+
+```{r eval=FALSE}
+# Old data
+#load(file.path(dirpath, "RNAseq", "DO381_islet.RData"))
+annot.samples$Mouse.ID <- stringr::str_replace(annot.samples$Mouse.ID, "DO-0*", "")
+head(annot.samples)
+#There are mouse duplicates. Throw them all out.
+(dupes <- sort(unique(c(which(duplicated(annot.samples$Mouse.ID)),
+                  which(duplicated(annot.samples$Mouse.ID, fromLast = TRUE))))))
+if(length(dupes)) {
+  annot.samples <- annot.samples[-dupes, ]
+  expr.mrna <- expr.mrna[-dupes, ]
+}
+saveRDS(annot.samples,
+        file = file.path(dirpath, "RNAseq", "annot.samples.rds"))
+```
+
+```{r}
+load(file.path(datapath, "AttieDOv2", "DerivedData", "Attie_islet_secr_data_v1.Rdata"))
 ```
 
 ```{r}
@@ -31,71 +53,77 @@ ls()
 ```
 
 ```{r}
-annot.samples$Mouse.ID <- stringr::str_replace(annot.samples$Mouse.ID, "DO-0*", "")
-head(annot.samples)
+head(annot.mrna)
 ```
 
+Add `covar` to `annot.mrna`.
+
 ```{r}
-head(annot.mrna)
+annot.mrna$covar <- "sex,DOwave"
 ```
 
 Save annotations in RDS files.
 
 ```{r}
-if(!dir.exists(file.path(dirpath, "RNAseq")))
-  dir.create(file.path(dirpath, "RNAseq"))
-```
-
-```{r}
 saveRDS(annot.mrna, file = file.path(dirpath, "RNAseq", "annot.mrna.rds"))
 ```
 
-There are mouse duplicates. Throw them all out.
+Save `rankz.mrna` in feather file. First create mouse ID column
 
 ```{r}
-(dupes <- sort(unique(c(which(duplicated(annot.samples$Mouse.ID)),
-                  which(duplicated(annot.samples$Mouse.ID, fromLast = TRUE))))))
-```
-
-```{r}
-if(length(dupes)) {
-  annot.samples <- annot.samples[-dupes, ]
-  expr.mrna <- expr.mrna[-dupes, ]
-}
-```
-
-```{r}
-saveRDS(annot.samples,
-        file = file.path(dirpath, "RNAseq", "annot.samples.rds"))
-```
-
-Save `expr.mrna` in feather file. First create mouse ID column
-
-```{r}
-expr.mrna <- data.frame(Mouse.ID = annot.samples$Mouse.ID, expr.mrna,
+rankz.mrna <- data.frame(Mouse.ID = rownames(rankz.mrna), rankz.mrna,
                         stringsAsFactors = FALSE)
 ```
 
 
 ```{r}
-write_feather(expr.mrna, file.path(dirpath, "RNAseq", "expr.mrna.feather"))
+feather::write_feather(rankz.mrna, file.path(dirpath, "RNAseq", "expr.mrna.feather"))
 ```
 
 ## Expression Peaks
 
-```{r}
+```{r eval=FALSE}
+# Old file
 system.time(peaks <- read_excel(file.path(datapath, "rna_seq", "all_suggestive_qtls_mrna.xlsx")))
-```
-
-```{r}
 table(table(peaks$gene_id))
 ```
 
 ```{r}
-write_feather(peaks, file.path(dirpath, "RNAseq", "peaks.mrna.feather"))
+peaks.mrna <- readRDS(file.path(datapath, "AttieDOv2", "DerivedData", "rnaseq_rankz_peaks.rds"))
 ```
 
 ```{r}
-system.time(peaks <- read_feather(file.path(dirpath, "RNAseq", "peaks.mrna.feather")))
+pheno_tissue <- DOread:::pheno_tissue
+```
+
+Positions in bp, not Mbp.
+
+```{r}
+m <- match(peaks.mrna$lodcolumn, annot.mrna$id)
+peaks.mrna$symbol <- annot.mrna$symbol[m]
+peaks.mrna$gene_chr <- annot.mrna$chr[m]
+peaks.mrna$gene_start <- annot.mrna$start[m]
+peaks.mrna$gene_end <- annot.mrna$end[m]
+peaks.mrna$pos <- peaks.mrna$pos
+```
+
+```{r}
+tissue <- "Islet"
+chrs <- names(map)
+peaks.mrna <- peaks.mrna %>%
+  mutate(chr = factor(chr, chrs),
+         pheno = pheno_tissue(tissue, symbol, lodcolumn),
+         longname = pheno,
+         output = pheno,
+         pheno_group = "Islet.mRNA",
+         pheno_type = paste("Islet.mRNA", gene_chr, sep = ".")) %>%
+  rename(gene_id = lodcolumn,
+         qtl_chr = chr,
+         qtl_pos = pos) %>%
+  select(-lodindex)
+```
+
+```{r}
+feather::write_feather(peaks.mrna, file.path(dirpath, "RNAseq", "peaks.mrna.feather"))
 ```
 
