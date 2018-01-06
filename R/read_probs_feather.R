@@ -13,5 +13,5 @@ read_probs_feather <- function(chr, datapath, allele = TRUE) {
                          file.path(".*feather", basename(oldpath)),
                          file.path(datapath, "feather", basename(oldpath)))
   probs <- modify_object(probs, pr)
-  subset(probs, chr = chr)
+  qtl2feather::subset_feather_genoprob(probs, chr = chr)
 }

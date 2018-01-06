@@ -17,6 +17,9 @@
 #' \dontrun{read_probs(chr, datapath)}
 #'
 #' @export
+#' @importFrom qtl2feather subset_feather_genoprob
+#' @importFrom stringr str_replace
+#'
 read_probs <- function(chr=NULL, start_val=NULL, end_val=NULL, datapath,
                        allele = TRUE, method = c("feather","calc")) {
 
@@ -61,7 +64,7 @@ read_probs <- function(chr=NULL, start_val=NULL, end_val=NULL, datapath,
                probs <- modify_object(probs, pr)
              },
              feather = {
-               probs <- subset(probs, mar = wh)
+               probs <- qtl2feather::subset_feather_genoprob(probs, mar = wh)
              })
     }
   }
