@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 Set up files for qtl2shiny package. Do this once, or whenever data changes.
+This assumes that `DerivedData` have been placed in an accessible folder.
+These data, in turn, come from various sources.
 
 ```{r}
 dirpath <- "~/Documents/Research/attie_alan/DO/data"
@@ -113,7 +115,7 @@ hots <- qtl2pattern::hotspot(pmap, peaks)
 ### Write out results
 
 ```{r}
-if(!dir.exists(filtered <- file.path("~/Documents/Research/qtl2shiny", "qtl2shinyData", "mouse", "AttieDO")))
+if(!dir.exists(filtered <- file.path("~/Documents/Research/qtl2shiny", "qtl2shinyData", "CCmouse", "AttieDO")))
   dir.create(filtered)
 saveRDS(covar, file.path(filtered, "covar.rds"))
 saveRDS(peaks, file.path(filtered, "peaks.rds"))
